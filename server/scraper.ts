@@ -57,20 +57,18 @@ export class AuctionScraper {
       .replace(/[^\w\s\$\.\,]/g, ' ')  // Remove special chars except $ . ,
       .trim();
 
-    console.log(`📝 Analyzing cleaned text: ${cleanText.length} characters`);
+    console.log(`📝 Analyzing text: "${cleanText.substring(0, 200)}..."`);
     
-    // Enhanced bid detection patterns - order matters (most specific first)
+    // More focused bid detection - prioritize recent/explicit bids
     const bidPatterns = [
-      // Dollar amounts with 1-2 decimal places: $25.24, $25.0, $25.00
-      { pattern: /\$(\d{1,3}(?:\.\d{1,2}))/g, priority: 1 },
-      // Dollar amounts without decimals: $25
-      { pattern: /\$(\d{1,3})(?!\d)/g, priority: 2 },
-      // Bid context with dollar: "bid $25", "offer $25.50"
-      { pattern: /(?:bid|offer|take|current)\s*:?\s*\$(\d{1,3}(?:\.\d{1,2})?)/gi, priority: 1 },
-      // Bid context without dollar: "bid 25", "offer 25.50" 
-      { pattern: /(?:bid|offer|take|current)\s*:?\s*(\d{1,3}(?:\.\d{1,2})?)(?!\d)/gi, priority: 2 },
-      // Plain numbers at word boundaries: "25" "25.50" (lowest priority)
-      { pattern: /\b(\d{1,3}(?:\.\d{1,2})?)\b/g, priority: 3 },
+      // Explicit bid context - highest priority
+      { pattern: /(?:bid|current bid|highest bid|offer)\s*:?\s*\$(\d{1,3}(?:\.\d{1,2})?)/gi, priority: 1 },
+      { pattern: /(?:bid|current bid|highest bid|offer)\s*:?\s*(\d{1,3}(?:\.\d{1,2})?)(?!\d)/gi, priority: 1 },
+      // Dollar amounts - medium priority
+      { pattern: /\$(\d{1,3}(?:\.\d{1,2}))/g, priority: 2 },
+      { pattern: /\$(\d{1,3})(?!\d)/g, priority: 3 },
+      // Plain numbers - lowest priority, only if reasonable bid range
+      { pattern: /\b(\d{1,2}(?:\.\d{1,2})?)\b/g, priority: 4 },
     ];
 
     const foundBids: Array<{ amount: number; source: string; priority: number }> = [];
@@ -95,20 +93,26 @@ export class AuctionScraper {
           continue;
         }
 
-        // Skip unrealistic amounts (over $500)
-        if (amount > 500) {
+        // Skip unrealistic amounts (over $200 for more accuracy)
+        if (amount > 200) {
           console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
           continue;
         }
 
-        // Skip common non-bid numbers (years, large IDs, etc.)
-        if (amount > 100 && /20\d{2}|19\d{2}|\d{4,}/.test(amountStr)) {
-          console.log(`⚠️ Skipping year/ID pattern: "${matchText}"`);
+        // Skip common non-bid numbers (years, phone numbers, etc.)
+        if (/20\d{2}|19\d{2}|\d{4,}/.test(amountStr) || amount < 1) {
+          console.log(`⚠️ Skipping invalid pattern: "${matchText}"`);
+          continue;
+        }
+
+        // Skip amounts that are too low to be realistic bids
+        if (amount < 5 && priority > 2) {
+          console.log(`⚠️ Skipping small amount: $${amount} (priority ${priority})`);
           continue;
         }
 
         // Valid bid found
-        if (amount >= 1 && amount <= 500) {
+        if (amount >= 5 && amount <= 200) {
           console.log(`🔍 Found potential bid: $${amount} from: "${matchText}" (priority ${priority})`);
           foundBids.push({ amount, source: matchText, priority });
         }
@@ -479,22 +483,26 @@ export class AuctionScraper {
             const currentBidFloat = parseFloat(update.currentBid);
             const existingBidFloat = parseFloat(auction.currentBid || auction.startingBid);
             
-            // Only update if the bid has increased
-            if (currentBidFloat > existingBidFloat) {
+            // Only update if the bid has increased significantly (at least $1 difference)
+            if (currentBidFloat > existingBidFloat + 0.99) {
               console.log(`✅ Bid updated for auction ${auction.id}: $${existingBidFloat} -> $${currentBidFloat}`);
               
-              const updateResult = await storage.updateAuction(auction.id, {
-                currentBid: update.currentBid
-              });
-              
-              if (updateResult) {
-                console.log(`✅ Database updated successfully for auction ${auction.id}`);
-                updatedBids.push(update);
-              } else {
-                console.log(`❌ Failed to update database for auction ${auction.id}`);
+              try {
+                const updateResult = await storage.updateAuction(auction.id, {
+                  currentBid: update.currentBid
+                });
+                
+                if (updateResult) {
+                  console.log(`✅ Database updated successfully for auction ${auction.id}`);
+                  updatedBids.push(update);
+                } else {
+                  console.log(`❌ Failed to update database for auction ${auction.id}`);
+                }
+              } catch (error) {
+                console.error(`❌ Error updating auction ${auction.id}:`, error);
               }
             } else {
-              console.log(`📊 No bid change for auction ${auction.id}: Current $${currentBidFloat} vs Existing $${existingBidFloat}`);
+              console.log(`📊 No significant bid change for auction ${auction.id}: Current $${currentBidFloat} vs Existing $${existingBidFloat}`);
             }
           }
           
