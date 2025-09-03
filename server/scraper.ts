@@ -91,16 +91,23 @@ export class AuctionScraper {
         let match;
         const regex = new RegExp(pattern.source, pattern.flags);
         while ((match = regex.exec(text)) !== null) {
+          const matchText = match[0];
           const amount = parseFloat(match[1] || match[0].replace('$', ''));
           
-          // Filter out unreasonably large amounts (over $1000) that are likely not auction bids
-          if (amount >= 1 && amount <= 1000) {
-            console.log(`🔍 Found potential bid: $${amount} from: "${match[0]}"`);
+          // Skip obvious non-bid patterns like "bid029", "bid123", etc.
+          if (/bid\d+/i.test(matchText) && !/\$/.test(matchText)) {
+            console.log(`⚠️ Skipping non-currency pattern: "${matchText}"`);
+            continue;
+          }
+          
+          // Filter out unreasonably large amounts (over $500) that are likely not auction bids
+          if (amount >= 1 && amount <= 500) {
+            console.log(`🔍 Found potential bid: $${amount} from: "${matchText}"`);
             if (amount > highestBid) {
               highestBid = amount;
             }
             bidCount++;
-          } else if (amount > 1000) {
+          } else if (amount > 500) {
             console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
           }
           if (!pattern.global) break;
@@ -172,10 +179,10 @@ export class AuctionScraper {
       
       // Enhanced bid detection patterns for Facebook - more restrictive
       const bidPatterns = [
-        // Most specific - bid with context
-        /(?:bid|offer|take)\s*:?\s*\$?(\d{1,3}(?:\.\d{2})?)/gi,
-        // Dollar signs with reasonable amounts only
+        // Dollar signs with reasonable amounts only (most restrictive first)
         /\$(\d{1,3}(?:\.\d{2})?)/g,
+        // Most specific - bid with context (but avoid "bid029" patterns)
+        /(?:bid|offer|take)\s*:?\s*\$?(\d{1,3}(?:\.\d{2})?)(?!\d)/gi,
         // Numbers with "dollars" context
         /(\d{1,3}(?:\.\d{2})?)\s*dollars?/gi
       ];
@@ -187,16 +194,23 @@ export class AuctionScraper {
         let match;
         const regex = new RegExp(pattern.source, pattern.flags);
         while ((match = regex.exec(text)) !== null) {
+          const matchText = match[0];
           const amount = parseFloat(match[1] || match[0].replace('$', ''));
           
-          // Filter out unreasonably large amounts (over $1000) that are likely not auction bids
-          if (amount >= 1 && amount <= 1000) {
-            console.log(`🔍 Found potential bid: $${amount} from: "${match[0]}"`);
+          // Skip obvious non-bid patterns like "bid029", "bid123", etc.
+          if (/bid\d+/i.test(matchText) && !/\$/.test(matchText)) {
+            console.log(`⚠️ Skipping non-currency pattern: "${matchText}"`);
+            continue;
+          }
+          
+          // Filter out unreasonably large amounts (over $500) that are likely not auction bids
+          if (amount >= 1 && amount <= 500) {
+            console.log(`🔍 Found potential bid: $${amount} from: "${matchText}"`);
             if (amount > highestBid) {
               highestBid = amount;
             }
             bidCount++;
-          } else if (amount > 1000) {
+          } else if (amount > 500) {
             console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
           }
           if (!pattern.global) break;
@@ -422,13 +436,20 @@ export class AuctionScraper {
             
             // Only update if the bid has increased
             if (currentBidFloat > existingBidFloat) {
-              console.log(`Bid updated for auction ${auction.id}: $${existingBidFloat} -> $${currentBidFloat}`);
+              console.log(`✅ Bid updated for auction ${auction.id}: $${existingBidFloat} -> $${currentBidFloat}`);
               
-              await storage.updateAuction(auction.id, {
+              const updateResult = await storage.updateAuction(auction.id, {
                 currentBid: update.currentBid
               });
               
-              updatedBids.push(update);
+              if (updateResult) {
+                console.log(`✅ Database updated successfully for auction ${auction.id}`);
+                updatedBids.push(update);
+              } else {
+                console.log(`❌ Failed to update database for auction ${auction.id}`);
+              }
+            } else {
+              console.log(`📊 No bid change for auction ${auction.id}: Current $${currentBidFloat} vs Existing $${existingBidFloat}`);
             }
           }
           
