@@ -173,21 +173,16 @@ export class FacebookCommentMonitor {
                 }
               }
               
-              const isValid = this.isValidBid(bidAmount, currentHighest, startingBid);
-              
+              // Don't validate yet - collect all bids first, then find highest
               foundBids.push({
                 amount: bidAmount,
                 commentText: commentText.substring(0, 50),
                 bidderName: bidderName.substring(0, 50), // Limit name length
                 timestamp: new Date(),
-                isValid
+                isValid: false // Will be set later for the highest bid only
               });
 
-              if (isValid) {
-                console.log(`✅ Valid bid: $${bidAmount} from: "${bidderName}" (${commentText.substring(0, 30)}...)`);
-              } else {
-                console.log(`⚠️ Invalid bid: $${bidAmount} from: "${bidderName}" (${commentText.substring(0, 30)}...)`);
-              }
+              console.log(`📝 Found bid: $${bidAmount} from: "${bidderName}" (${commentText.substring(0, 30)}...)`);
             }
           }
         });
