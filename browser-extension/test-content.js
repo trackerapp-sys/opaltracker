@@ -1,9 +1,14 @@
-// Ultra Simple Test Version - Opal Auction Tracker
-console.log('🔥 TEST EXTENSION LOADED ON:', window.location.href);
+// Opal Auction Tracker - Facebook Bid Monitor
+console.log('🔥 OPAL TRACKER LOADED ON:', window.location.href);
+
+// Safety check for chrome.runtime
+if (typeof chrome === 'undefined' || !chrome.runtime) {
+  console.log('⚠️ Chrome extension API not available');
+}
 
 // Show a big notification that we're working
 const notification = document.createElement('div');
-notification.innerHTML = '🔥 OPAL TRACKER ACTIVE!<br>Scanning for bids every 5 seconds...';
+notification.innerHTML = '🔥 OPAL TRACKER ACTIVE!<br>Scanning for bids every 3 seconds...';
 notification.style.cssText = `
   position: fixed;
   top: 20px;
@@ -17,7 +22,15 @@ notification.style.cssText = `
   font-size: 14px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
   min-width: 250px;
+  cursor: pointer;
 `;
+
+// Add click handler for manual test
+notification.addEventListener('click', () => {
+  console.log('🧪 MANUAL TEST - Simulating $50 bid...');
+  updateAuction(50);
+});
+
 document.body.appendChild(notification);
 
 // Scan for bids every 3 seconds - enhanced detection

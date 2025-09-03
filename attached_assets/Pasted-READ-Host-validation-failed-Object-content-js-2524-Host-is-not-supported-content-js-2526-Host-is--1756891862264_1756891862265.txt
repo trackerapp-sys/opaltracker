@@ -1,0 +1,81 @@
+READ - Host validation failed: Object
+content.js:2524 Host is not supported
+content.js:2526 Host is not valid or supported
+content.js:2526 Host is not in insights whitelist
+contentScript.js:1 Uncaught TypeError: Cannot read properties of undefined (reading 'sendMessage')
+    at HTMLDocument.<anonymous> (contentScript.js:1:803)Understand this error
+auctions.tsx:48 Fetch finished loading: GET "https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions?limit=10&offset=0".
+queryFn @ auctions.tsx:48
+fetchFn @ @tanstack_react-query.js?v=d232a93c:840
+run @ @tanstack_react-query.js?v=d232a93c:494
+start @ @tanstack_react-query.js?v=d232a93c:536
+fetch @ @tanstack_react-query.js?v=d232a93c:926
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:1726
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:1725
+batch @ @tanstack_react-query.js?v=d232a93c:583
+refetchQueries @ @tanstack_react-query.js?v=d232a93c:1724
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:1716
+batch @ @tanstack_react-query.js?v=d232a93c:583
+invalidateQueries @ @tanstack_react-query.js?v=d232a93c:1705
+onSuccess @ auction-table.tsx:78
+execute @ @tanstack_react-query.js?v=d232a93c:1233
+queryClient.ts:15 Fetch finished loading: POST "https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/monitor/check".
+apiRequest @ queryClient.ts:15
+mutationFn @ auction-table.tsx:74
+fn @ @tanstack_react-query.js?v=d232a93c:1189
+run @ @tanstack_react-query.js?v=d232a93c:494
+start @ @tanstack_react-query.js?v=d232a93c:536
+execute @ @tanstack_react-query.js?v=d232a93c:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=d232a93c:2630
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:3295
+onClick @ auction-table.tsx:270
+callCallback2 @ chunk-WERSD76P.js?v=d232a93c:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=d232a93c:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=d232a93c:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=d232a93c:3736
+executeDispatch @ chunk-WERSD76P.js?v=d232a93c:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=d232a93c:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=d232a93c:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=d232a93c:7051
+(anonymous) @ chunk-WERSD76P.js?v=d232a93c:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=d232a93c:18913
+batchedUpdates @ chunk-WERSD76P.js?v=d232a93c:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=d232a93c:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=d232a93c:5478
+dispatchEvent @ chunk-WERSD76P.js?v=d232a93c:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=d232a93c:5449
+auctions.tsx:48 Fetch finished loading: GET "https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions?limit=10&offset=0".
+queryFn @ auctions.tsx:48
+fetchFn @ @tanstack_react-query.js?v=d232a93c:840
+run @ @tanstack_react-query.js?v=d232a93c:494
+start @ @tanstack_react-query.js?v=d232a93c:536
+fetch @ @tanstack_react-query.js?v=d232a93c:926
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:1726
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:1725
+batch @ @tanstack_react-query.js?v=d232a93c:583
+refetchQueries @ @tanstack_react-query.js?v=d232a93c:1724
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:1716
+batch @ @tanstack_react-query.js?v=d232a93c:583
+invalidateQueries @ @tanstack_react-query.js?v=d232a93c:1705
+onSuccess @ auction-table.tsx:78
+execute @ @tanstack_react-query.js?v=d232a93c:1233
+await in execute
+mutate @ @tanstack_react-query.js?v=d232a93c:2630
+(anonymous) @ @tanstack_react-query.js?v=d232a93c:3295
+onClick @ auction-table.tsx:270
+callCallback2 @ chunk-WERSD76P.js?v=d232a93c:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=d232a93c:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=d232a93c:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=d232a93c:3736
+executeDispatch @ chunk-WERSD76P.js?v=d232a93c:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=d232a93c:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=d232a93c:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=d232a93c:7051
+(anonymous) @ chunk-WERSD76P.js?v=d232a93c:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=d232a93c:18913
+batchedUpdates @ chunk-WERSD76P.js?v=d232a93c:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=d232a93c:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=d232a93c:5478
+dispatchEvent @ chunk-WERSD76P.js?v=d232a93c:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=d232a93c:5449
