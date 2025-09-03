@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Gem, ChartLine, List, Plus, BarChart, Download } from "lucide-react";
+import { Gem, ChartLine, List, Plus, BarChart, Download, RefreshCw } from "lucide-react";
 
 export default function Sidebar() {
   const [location] = useLocation();
@@ -8,6 +8,7 @@ export default function Sidebar() {
     { path: "/", label: "Dashboard", icon: ChartLine },
     { path: "/auctions", label: "View Auctions", icon: List },
     { path: "/add-auction", label: "Add Auction", icon: Plus },
+    { path: "/bulk-update", label: "Quick Updates", icon: RefreshCw },
     { path: "/analytics", label: "Analytics", icon: BarChart },
     { path: "/export", label: "Export Data", icon: Download },
   ];

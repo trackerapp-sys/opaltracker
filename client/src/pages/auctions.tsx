@@ -13,10 +13,12 @@ interface Auction {
   weight: string;
   description?: string;
   facebookGroup: string;
+  postUrl?: string;
   startingBid: string;
   currentBid?: string;
   endTime: string;
   status: "active" | "ended" | "won" | "lost";
+  updatedAt: string;
 }
 
 interface AuctionsResponse {
@@ -155,12 +157,34 @@ export default function Auctions() {
           </div>
         </div>
       ) : (
-        <AuctionTable
-          auctions={data?.auctions || []}
-          formatCurrency={formatCurrency}
-          formatDate={formatDate}
-          getStatusColor={getStatusColor}
-        />
+        <>
+          <div className="bg-card rounded-lg border border-border p-4 mb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{data?.auctions.filter(a => a.status === 'active').length || 0}</span> active auctions
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-amber-600">{data?.auctions.filter(a => {
+                    const end = new Date(a.endTime);
+                    const now = new Date();
+                    const hoursUntilEnd = (end.getTime() - now.getTime()) / (1000 * 60 * 60);
+                    return hoursUntilEnd > 0 && hoursUntilEnd <= 2 && a.status === 'active';
+                  }).length || 0}</span> ending soon
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">
+                💡 Click the $ icon to quickly update bids, or the external link to open Facebook
+              </div>
+            </div>
+          </div>
+          <AuctionTable
+            auctions={data?.auctions || []}
+            formatCurrency={formatCurrency}
+            formatDate={formatDate}
+            getStatusColor={getStatusColor}
+          />
+        </>
       )}
 
       {/* Pagination */}

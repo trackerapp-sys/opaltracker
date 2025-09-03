@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import StatsCard from "@/components/stats-card";
-import { Gem, Clock, Trophy, DollarSign, Plus, Search, Download, AlertTriangle } from "lucide-react";
+import { Gem, Clock, Trophy, DollarSign, Plus, Search, Download, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface Analytics {
@@ -19,6 +19,7 @@ interface Analytics {
     currentBid: string;
     startingBid: string;
     status: string;
+    endTime: string;
   }>;
 }
 
@@ -164,6 +165,13 @@ export default function Dashboard() {
               </Button>
             </Link>
             
+            <Link href="/bulk-update">
+              <Button variant="secondary" className="w-full justify-center" data-testid="button-bulk-update">
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Quick Updates
+              </Button>
+            </Link>
+            
             <Link href="/export">
               <Button variant="outline" className="w-full justify-center" data-testid="button-export-data">
                 <Download className="w-4 h-4 mr-2" />
@@ -171,14 +179,46 @@ export default function Dashboard() {
               </Button>
             </Link>
 
+            {/* Ending Soon Alerts */}
+            {analytics?.recentAuctions?.filter(auction => {
+              if (!auction.endTime) return false;
+              const end = new Date(auction.endTime);
+              const now = new Date();
+              const hoursUntilEnd = (end.getTime() - now.getTime()) / (1000 * 60 * 60);
+              return hoursUntilEnd > 0 && hoursUntilEnd <= 2 && auction.status === 'active';
+            }).length > 0 && (
+              <div className="pt-4 border-t border-border">
+                <div className="bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                  <div className="flex items-start space-x-3">
+                    <Clock className="text-amber-600 mt-1 w-4 h-4" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Ending Soon!</p>
+                      <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                        {analytics?.recentAuctions?.filter(auction => {
+                          if (!auction.endTime) return false;
+                          const end = new Date(auction.endTime);
+                          const now = new Date();
+                          const hoursUntilEnd = (end.getTime() - now.getTime()) / (1000 * 60 * 60);
+                          return hoursUntilEnd > 0 && hoursUntilEnd <= 2 && auction.status === 'active';
+                        }).length} auctions ending within 2 hours
+                      </p>
+                      <Link href="/auctions" className="text-xs text-amber-600 dark:text-amber-400 hover:underline">
+                        View and update bids →
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="pt-4 border-t border-border">
-              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
                 <div className="flex items-start space-x-3">
-                  <AlertTriangle className="text-amber-600 mt-1 w-4 h-4" />
+                  <AlertTriangle className="text-blue-600 mt-1 w-4 h-4" />
                   <div>
-                    <p className="text-sm font-medium text-amber-800">API Notice</p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      Facebook Groups API is no longer available. All auction data must be entered manually.
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Manual Tracking</p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                      Use quick update buttons (💰) in auction table for fast bid tracking.
                     </p>
                   </div>
                 </div>
