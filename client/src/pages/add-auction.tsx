@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { Copy, Facebook, ExternalLink } from "lucide-react";
 
 const addAuctionSchema = z.object({
   opalType: z.string().min(1, "Opal type is required"),
@@ -36,6 +38,9 @@ export default function AddAuction() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [showPostGenerator, setShowPostGenerator] = useState(false);
+  const [generatedPost, setGeneratedPost] = useState("");
+  const [createdAuctionId, setCreatedAuctionId] = useState<string | null>(null);
 
   const form = useForm<AddAuctionForm>({
     resolver: zodResolver(addAuctionSchema),
@@ -69,14 +74,15 @@ export default function AddAuction() {
       });
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
       queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      setCreatedAuctionId(data.id);
       toast({
         title: "Success",
         description: "Auction created successfully!",
       });
-      setLocation("/");
+      // Don't redirect immediately, show post generator option
     },
     onError: (error) => {
       toast({
