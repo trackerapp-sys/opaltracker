@@ -3,6 +3,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Eye, Edit, ExternalLink, DollarSign, Clock, RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -31,8 +33,22 @@ interface AuctionTableProps {
 
 export default function AuctionTable({ auctions, formatCurrency, formatDate, getStatusColor }: AuctionTableProps) {
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
+  const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
   const [newBid, setNewBid] = useState("");
   const [newStatus, setNewStatus] = useState("");
+  const [editForm, setEditForm] = useState({
+    opalType: "",
+    weight: "",
+    description: "",
+    facebookGroup: "",
+    postUrl: "",
+    startingBid: "",
+    currentBid: "",
+    maxBid: "",
+    endTime: "",
+    status: "active" as const,
+    notes: ""
+  });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -241,15 +257,163 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                     >
                       <RefreshCw className={`h-4 w-4 ${updateAuctionMutation.isPending ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost" 
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
-                      title="Edit auction"
-                      data-testid={`button-edit-${auction.id}`}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                          title="Edit auction"
+                          data-testid={`button-edit-${auction.id}`}
+                          onClick={() => {
+                            setEditingAuction(auction);
+                            setEditForm({
+                              opalType: auction.opalType,
+                              weight: auction.weight,
+                              description: auction.description || "",
+                              facebookGroup: auction.facebookGroup,
+                              postUrl: auction.postUrl || "",
+                              startingBid: auction.startingBid,
+                              currentBid: auction.currentBid || "",
+                              maxBid: "", // This field might not exist in current data
+                              endTime: auction.endTime,
+                              status: auction.status,
+                              notes: "" // This field might not exist in current data
+                            });
+                          }}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+                        <DialogHeader>
+                          <DialogTitle>Edit Auction - {auction.opalType}</DialogTitle>
+                        </DialogHeader>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-opal-type">Opal Type *</Label>
+                            <Select value={editForm.opalType} onValueChange={(value) => setEditForm(prev => ({ ...prev, opalType: value }))}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Black Opal">Black Opal</SelectItem>
+                                <SelectItem value="Crystal Opal">Crystal Opal</SelectItem>
+                                <SelectItem value="Boulder Opal">Boulder Opal</SelectItem>
+                                <SelectItem value="White Opal">White Opal</SelectItem>
+                                <SelectItem value="Fire Opal">Fire Opal</SelectItem>
+                                <SelectItem value="Matrix Opal">Matrix Opal</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-weight">Weight (carats) *</Label>
+                            <Input
+                              id="edit-weight"
+                              type="number"
+                              step="0.01"
+                              value={editForm.weight}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, weight: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-2 md:col-span-2">
+                            <Label htmlFor="edit-description">Description</Label>
+                            <Textarea
+                              id="edit-description"
+                              value={editForm.description}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                              placeholder="Describe the opal's features, colors, pattern..."
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-facebook-group">Facebook Group *</Label>
+                            <Input
+                              id="edit-facebook-group"
+                              value={editForm.facebookGroup}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, facebookGroup: e.target.value }))}
+                              placeholder="e.g., Australian Opal Auctions"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-post-url">Post URL</Label>
+                            <Input
+                              id="edit-post-url"
+                              type="url"
+                              value={editForm.postUrl}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, postUrl: e.target.value }))}
+                              placeholder="Facebook post or auction URL"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-starting-bid">Starting Bid *</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+                              <Input
+                                id="edit-starting-bid"
+                                type="number"
+                                step="0.01"
+                                value={editForm.startingBid}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, startingBid: e.target.value }))}
+                                className="pl-8"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-current-bid">Current Bid</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+                              <Input
+                                id="edit-current-bid"
+                                type="number"
+                                step="0.01"
+                                value={editForm.currentBid}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, currentBid: e.target.value }))}
+                                className="pl-8"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-end-time">End Date & Time *</Label>
+                            <Input
+                              id="edit-end-time"
+                              type="datetime-local"
+                              value={editForm.endTime}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, endTime: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-status">Status</Label>
+                            <Select value={editForm.status} onValueChange={(value: any) => setEditForm(prev => ({ ...prev, status: value }))}>
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="ended">Ended</SelectItem>
+                                <SelectItem value="won">Won</SelectItem>
+                                <SelectItem value="lost">Lost</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        <div className="flex space-x-2 pt-4">
+                          <Button
+                            onClick={() => {
+                              if (editingAuction) {
+                                updateAuctionMutation.mutate({
+                                  id: editingAuction.id,
+                                  updates: editForm
+                                });
+                              }
+                            }}
+                            disabled={updateAuctionMutation.isPending}
+                            className="flex-1"
+                          >
+                            {updateAuctionMutation.isPending ? "Saving..." : "Save Changes"}
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
                   </div>
                 </td>
               </tr>
