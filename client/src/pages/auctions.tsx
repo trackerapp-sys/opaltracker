@@ -90,7 +90,7 @@ export default function Auctions() {
                 <SelectValue placeholder="All Types" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Types</SelectItem>
+                <SelectItem value="all">All Types</SelectItem>
                 <SelectItem value="Black Opal">Black Opal</SelectItem>
                 <SelectItem value="Crystal Opal">Crystal Opal</SelectItem>
                 <SelectItem value="Boulder Opal">Boulder Opal</SelectItem>
@@ -106,7 +106,7 @@ export default function Auctions() {
                 <SelectValue placeholder="All Status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Status</SelectItem>
+                <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="ended">Ended</SelectItem>
                 <SelectItem value="won">Won</SelectItem>
@@ -121,7 +121,7 @@ export default function Auctions() {
                 <SelectValue placeholder="All Prices" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Prices</SelectItem>
+                <SelectItem value="all">All Prices</SelectItem>
                 <SelectItem value="$0 - $100">$0 - $100</SelectItem>
                 <SelectItem value="$100 - $500">$100 - $500</SelectItem>
                 <SelectItem value="$500 - $1000">$500 - $1000</SelectItem>
