@@ -57,18 +57,38 @@ export class AuctionScraper {
       .replace(/[^\w\s\$\.\,]/g, ' ')  // Remove special chars except $ . ,
       .trim();
 
-    console.log(`📝 Analyzing text: "${cleanText.substring(0, 200)}..."`);
+    console.log(`📝 Analyzing text (${cleanText.length} chars): "${cleanText.substring(0, 100)}..."`);    
     
-    // More focused bid detection - prioritize recent/explicit bids
+    // Skip if this looks like a data dump or list (too many sequential numbers)
+    const numbers = cleanText.match(/\b\d{1,3}\b/g) || [];
+    if (numbers.length > 10) {
+      console.log(`⚠️ Skipping text with too many numbers (${numbers.length}) - likely not comment content`);
+      return { highestBid: 0, bidCount: 0 };
+    }
+    
+    // Check for sequential numbers (indicates data table/list, not comments)
+    const sortedNumbers = numbers.map(n => parseInt(n)).sort((a, b) => a - b);
+    let sequentialCount = 0;
+    for (let i = 1; i < sortedNumbers.length; i++) {
+      if (sortedNumbers[i] - sortedNumbers[i-1] === 1) {
+        sequentialCount++;
+      }
+    }
+    if (sequentialCount > 5) {
+      console.log(`⚠️ Skipping text with ${sequentialCount} sequential numbers - likely data table`);
+      return { highestBid: 0, bidCount: 0 };
+    }
+    
+    // Facebook comment-focused bid detection
     const bidPatterns = [
       // Explicit bid context - highest priority
-      { pattern: /(?:bid|current bid|highest bid|offer)\s*:?\s*\$(\d{1,3}(?:\.\d{1,2})?)/gi, priority: 1 },
-      { pattern: /(?:bid|current bid|highest bid|offer)\s*:?\s*(\d{1,3}(?:\.\d{1,2})?)(?!\d)/gi, priority: 1 },
-      // Dollar amounts - medium priority
-      { pattern: /\$(\d{1,3}(?:\.\d{1,2}))/g, priority: 2 },
-      { pattern: /\$(\d{1,3})(?!\d)/g, priority: 3 },
-      // Plain numbers - lowest priority, only if reasonable bid range
-      { pattern: /\b(\d{1,2}(?:\.\d{1,2})?)\b/g, priority: 4 },
+      { pattern: /(?:bid|current bid|highest bid|offer|take)\s*:?\s*\$(\d{1,3}(?:\.\d{1,2})?)/gi, priority: 1 },
+      { pattern: /(?:bid|current bid|highest bid|offer|take)\s*:?\s*(\d{1,3}(?:\.\d{1,2})?)(?!\d)/gi, priority: 1 },
+      // Dollar amounts in comment context
+      { pattern: /(?:^|\s)\$(\d{1,3}(?:\.\d{1,2})?)(?=\s|$|[!\.,])/g, priority: 2 },
+      { pattern: /(?:^|\s)\$(\d{1,3})(?=\s|$|[!\.,])/g, priority: 3 },
+      // Only accept plain numbers if they look like Facebook comments (short text)
+      { pattern: cleanText.length < 50 ? /(?:^|\s)(\d{1,2}(?:\.\d{1,2})?)(?=\s|$|[!\.,])/g : /(?!.*)/g, priority: 4 },
     ];
 
     const foundBids: Array<{ amount: number; source: string; priority: number }> = [];
@@ -110,6 +130,12 @@ export class AuctionScraper {
           console.log(`⚠️ Skipping small amount: $${amount} (priority ${priority})`);
           continue;
         }
+        
+        // Skip if we're finding too many bids (indicates data dump)
+        if (foundBids.length > 5 && priority > 2) {
+          console.log(`⚠️ Skipping excess bid: $${amount} (too many found already)`);
+          continue;
+        
 
         // Valid bid found
         if (amount >= 5 && amount <= 200) {
