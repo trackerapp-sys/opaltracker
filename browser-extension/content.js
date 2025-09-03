@@ -3,7 +3,7 @@ console.log('🔥 Opal Auction Tracker Extension Loaded');
 
 class OpalAuctionDetector {
   constructor() {
-    this.trackerUrl = 'https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev'; // Your current app URL
+    this.trackerUrl = 'https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-workspace.yvettewalkerboo.replit.dev'; // Your current app URL
     this.isMonitoring = false;
     this.trackedPosts = new Set();
     this.bidPattern = /\$(\d{1,3}(?:\.\d{1,2})?)|(\d{1,3}(?:\.\d{1,2})?)\s*(?:dollars?|AUD)|(?:bid|offer)\s*:?\s*\$?(\d{1,3}(?:\.\d{1,2})?)/gi;
