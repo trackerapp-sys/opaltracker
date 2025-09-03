@@ -92,11 +92,16 @@ export class AuctionScraper {
         const regex = new RegExp(pattern.source, pattern.flags);
         while ((match = regex.exec(text)) !== null) {
           const amount = parseFloat(match[1] || match[0].replace('$', ''));
-          if (amount > 0 && amount > highestBid) {
-            highestBid = amount;
-          }
-          if (amount > 0) {
+          
+          // Filter out unreasonably large amounts (over $1000) that are likely not auction bids
+          if (amount >= 1 && amount <= 1000) {
+            console.log(`🔍 Found potential bid: $${amount} from: "${match[0]}"`);
+            if (amount > highestBid) {
+              highestBid = amount;
+            }
             bidCount++;
+          } else if (amount > 1000) {
+            console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
           }
           if (!pattern.global) break;
         }
@@ -160,11 +165,16 @@ export class AuctionScraper {
         const regex = new RegExp(pattern.source, pattern.flags);
         while ((match = regex.exec(text)) !== null) {
           const amount = parseFloat(match[1] || match[0].replace('$', ''));
-          if (amount > 0 && amount > highestBid) {
-            highestBid = amount;
-          }
-          if (amount > 0) {
+          
+          // Filter out unreasonably large amounts (over $1000) that are likely not auction bids
+          if (amount >= 1 && amount <= 1000) {
+            console.log(`🔍 Found potential bid: $${amount} from: "${match[0]}"`);
+            if (amount > highestBid) {
+              highestBid = amount;
+            }
             bidCount++;
+          } else if (amount > 1000) {
+            console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
           }
           if (!pattern.global) break;
         }
