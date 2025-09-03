@@ -55,32 +55,55 @@ async function updateAuction(bidAmount) {
     // Get current auctions
     const response = await fetch('https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions');
     const data = await response.json();
+    console.log('📊 Auction data received:', data);
     
     if (data.auctions && data.auctions.length > 0) {
       const auction = data.auctions[0];
+      console.log('🎯 Target auction:', auction);
       const currentBid = parseFloat(auction.currentBid || auction.startingBid);
       
       if (bidAmount > currentBid) {
         console.log(`🚀 UPDATING: $${currentBid} → $${bidAmount}`);
         
-        // Try to get bidder name from Facebook
+        // Enhanced bidder name detection
         let bidderName = 'Extension User';
+        
+        // Try multiple approaches to get the user's name
         const nameSelectors = [
-          '[aria-label*="Profile"]',
-          '[data-testid="nav_account_switcher"]',
-          '[role="button"][tabindex="0"] span',
-          'a[href*="/profile.php"] span'
+          // Main navigation profile
+          '[data-testid="nav_account_switcher"] span',
+          '[aria-label*="Your profile"] span',
+          // Profile links
+          'a[href*="/profile.php"] span, a[href*="/profile.php"] div',
+          // Header profile elements
+          'header [role="button"] span',
+          // Any profile-related elements
+          '[data-testid*="profile"] span',
+          // Fallback to any navigation text that looks like a name
+          'nav span[dir="auto"]'
         ];
         
         for (const selector of nameSelectors) {
-          const element = document.querySelector(selector);
-          if (element && element.textContent.trim().length > 0 && element.textContent.trim().length < 50) {
-            bidderName = element.textContent.trim();
-            break;
+          const elements = document.querySelectorAll(selector);
+          for (const element of elements) {
+            const text = element.textContent?.trim();
+            if (text && text.length > 0 && text.length < 50 && 
+                !text.includes('Profile') && !text.includes('profile') && 
+                !text.includes('Menu') && !text.includes('menu') &&
+                !text.includes('Search') && !text.includes('Home')) {
+              bidderName = text;
+              console.log(`👤 Found bidder name: ${bidderName}`);
+              break;
+            }
           }
+          if (bidderName !== 'Extension User') break;
         }
         
-        const updateResponse = await fetch(`https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions/${auction.id}`, {
+        // Ensure auction.id is a string
+        const auctionId = String(auction.id);
+        console.log(`🔄 Updating auction ID: ${auctionId}`);
+        
+        const updateResponse = await fetch(`https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions/${auctionId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ 
@@ -90,15 +113,28 @@ async function updateAuction(bidAmount) {
         });
         
         if (updateResponse.ok) {
-          console.log(`✅ SUCCESS! Updated to $${bidAmount}`);
-          notification.innerHTML = `✅ UPDATED TO $${bidAmount}!`;
+          console.log(`✅ SUCCESS! Updated to $${bidAmount} from ${bidderName}`);
+          notification.innerHTML = `✅ UPDATED TO $${bidAmount}!<br>Bidder: ${bidderName}`;
+          notification.style.background = '#44ff44';
         } else {
-          console.log('❌ Update failed');
+          console.log('❌ Update failed with status:', updateResponse.status);
+          const errorText = await updateResponse.text();
+          console.log('❌ Error details:', errorText);
+          notification.innerHTML = `❌ Update failed: ${updateResponse.status}`;
+          notification.style.background = '#ff4444';
         }
+      } else {
+        console.log(`⚪ Bid $${bidAmount} not higher than current $${currentBid}`);
       }
+    } else {
+      console.log('❌ No auctions found');
+      notification.innerHTML = '❌ No auctions found';
+      notification.style.background = '#ff4444';
     }
   } catch (error) {
     console.error('❌ Error:', error);
+    notification.innerHTML = `❌ Error: ${error.message}`;
+    notification.style.background = '#ff4444';
   }
 }
 
