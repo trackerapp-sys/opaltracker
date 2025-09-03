@@ -53,18 +53,73 @@ notification.onclick = async () => {
 
 document.body.appendChild(notification);
 
-// Auto scan for bids every 5 seconds
-setInterval(() => {
+// Auto scan for bids every 3 seconds with aggressive detection
+setInterval(async () => {
   const pageText = document.body.innerText;
-  const bidMatches = pageText.match(/\b(\d{2,3})\b/g);
+  console.log('🔍 SCANNING PAGE FOR BIDS...');
   
-  if (bidMatches) {
-    const bids = bidMatches.map(Number).filter(n => n >= 20 && n <= 200);
-    if (bids.length > 0) {
-      const highest = Math.max(...bids);
-      console.log(`📊 Found bids: ${bids.join(', ')} - Highest: $${highest}`);
+  // Multiple bid detection patterns
+  const patterns = [
+    /\$(\d{1,3})/g,           // $45, $55
+    /\b(\d{2,3})\b/g,         // 45, 55 standalone
+    /bid\s*:?\s*(\d{1,3})/gi, // bid 45, bid: 55
+    /(\d{1,3})\s*dollars?/gi  // 45 dollars
+  ];
+  
+  let allBids = [];
+  for (const pattern of patterns) {
+    const matches = [...pageText.matchAll(pattern)];
+    for (const match of matches) {
+      const bid = parseInt(match[1]);
+      if (bid >= 20 && bid <= 300) {
+        allBids.push(bid);
+      }
     }
   }
-}, 5000);
+  
+  if (allBids.length > 0) {
+    const uniqueBids = [...new Set(allBids)].sort((a, b) => b - a);
+    const highest = uniqueBids[0];
+    console.log(`🔥 FOUND BIDS: ${uniqueBids.slice(0, 10).join(', ')} - HIGHEST: $${highest}`);
+    
+    // Try to update auction with highest bid
+    try {
+      const response = await fetch('https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions');
+      const data = await response.json();
+      
+      if (data.auctions && data.auctions.length > 0) {
+        const auction = data.auctions[0];
+        const currentBid = parseFloat(auction.currentBid || auction.startingBid || 0);
+        
+        if (highest > currentBid) {
+          console.log(`🚀 UPDATING: $${currentBid} → $${highest}`);
+          
+          const updateResponse = await fetch(`https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions/${auction.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              currentBid: highest.toString(),
+              currentBidder: 'Extension User'
+            })
+          });
+          
+          if (updateResponse.ok) {
+            console.log(`✅ SUCCESS! Updated to $${highest}`);
+            notification.innerHTML = `✅ UPDATED!<br>$${currentBid} → $${highest}`;
+            notification.style.background = '#44ff44';
+          } else {
+            console.log('❌ Update failed:', await updateResponse.text());
+          }
+        } else {
+          console.log(`⚪ $${highest} not higher than current $${currentBid}`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Auto-update error:', error);
+    }
+  } else {
+    console.log('❌ No bids found in scan');
+  }
+}, 3000);
 
 console.log('🎯 Extension ready - click red box to test!');
