@@ -28,7 +28,7 @@
         "https://*.facebook.com/*",
         "https://facebook.com/*"
       ],
-      "js": ["test-content.js"],
+      "js": ["clean-content.js"],
       "css": ["styles.css"],
       "run_at": "document_end"
     }
