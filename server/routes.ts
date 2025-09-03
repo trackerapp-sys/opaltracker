@@ -213,16 +213,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/monitor/check", async (req, res) => {
-    try {
-      const updates = await auctionMonitor.manualCheck();
-      res.json({ 
-        message: `Manual check completed. Found ${updates.length} updates.`,
-        updates 
-      });
-    } catch (error) {
-      console.error("Error during manual check:", error);
-      res.status(500).json({ message: "Failed to perform manual check" });
-    }
+    // Server monitoring disabled - Chrome extension handles detection
+    res.json({ 
+      message: "Chrome extension handles all bid detection automatically.",
+      updates: []
+    });
   });
 
   const httpServer = createServer(app);

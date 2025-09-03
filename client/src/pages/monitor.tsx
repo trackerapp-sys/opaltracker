@@ -179,15 +179,13 @@ export default function Monitor() {
                 </Button>
               )}
               
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => checkMutation.mutate()}
-                disabled={checkMutation.isPending}
-              >
-                <RefreshCw className={`w-4 h-4 mr-1 ${checkMutation.isPending ? 'animate-spin' : ''}`} />
-                Check Now
-              </Button>
+              <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg border-2 border-blue-200 dark:border-blue-800">
+                <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">🤖 Chrome Extension Active</h3>
+                <p className="text-sm text-blue-600 dark:text-blue-300">
+                  Automatic bid detection is handled by the Chrome extension.
+                  <br />Make sure the extension is installed and active on Facebook auction pages.
+                </p>
+              </div>
             </div>
           </div>
 
