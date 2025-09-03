@@ -80,7 +80,7 @@ async function loadStatus() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     const currentTab = tabs[0];
     
-    if (currentTab.url.includes('facebook.com')) {
+    if (currentTab && currentTab.url && currentTab.url.includes('facebook.com')) {
       document.getElementById('status').textContent = '🟢 Active on Facebook';
       
       // Try to get stats from content script
