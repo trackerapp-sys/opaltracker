@@ -20,33 +20,53 @@ notification.style.cssText = `
 `;
 document.body.appendChild(notification);
 
-// Scan for bids every 5 seconds
+// Scan for bids every 3 seconds - enhanced detection
 setInterval(() => {
   const pageText = document.body.innerText;
-  console.log('🔍 Scanning page text...');
+  console.log('🔍 SCANNING FOR ALL BIDS...');
   
-  // Look for your specific bids
-  const bids = [];
-  if (pageText.includes('125')) bids.push(125);
-  if (pageText.includes('100')) bids.push(100);
-  if (pageText.includes('65')) bids.push(65);
-  if (pageText.includes('55')) bids.push(55);
-  if (pageText.includes('25')) bids.push(25);
+  // Enhanced patterns to detect any bid amount
+  const bidPatterns = [
+    /\$(\d{1,3}(?:\.\d{1,2})?)/g,                    // $25, $25.50, $100
+    /(\d{1,3}(?:\.\d{1,2})?)\s*dollars?/gi,          // 25 dollars, 100 dollars
+    /bid\s*:?\s*\$?(\d{1,3}(?:\.\d{1,2})?)/gi,       // bid 45, bid: $45, bid 100
+    /offer\s*:?\s*\$?(\d{1,3}(?:\.\d{1,2})?)/gi,     // offer 50
+    /(\d{1,3}(?:\.\d{1,2})?)\b(?!\s*(?:kg|g|mm|cm|carats?|members|K\s|hours?|days?|minutes?|years?))/gi  // standalone numbers
+  ];
   
-  if (bids.length > 0) {
-    const highest = Math.max(...bids);
-    console.log(`🔥 FOUND BIDS: ${bids.join(', ')} - HIGHEST: $${highest}`);
+  const foundBids = [];
+  let allMatches = [];
+  
+  for (const pattern of bidPatterns) {
+    const matches = [...pageText.matchAll(pattern)];
+    for (const match of matches) {
+      const bid = parseFloat(match[1]);
+      if (bid >= 15 && bid <= 1000) {  // Reasonable bid range
+        foundBids.push(bid);
+        allMatches.push(`$${bid}`);
+      }
+    }
+  }
+  
+  if (foundBids.length > 0) {
+    // Remove duplicates and sort
+    const uniqueBids = [...new Set(foundBids)].sort((a, b) => b - a);
+    const highest = uniqueBids[0];
+    
+    console.log(`🔥 FOUND ${foundBids.length} BIDS: ${uniqueBids.join(', ')} - HIGHEST: $${highest}`);
     
     // Update the notification
-    notification.innerHTML = `🔥 FOUND BIDS!<br>Detected: ${bids.join(', ')}<br>Highest: $${highest}`;
+    notification.innerHTML = `🔥 FOUND BIDS!<br>All: ${uniqueBids.slice(0, 5).join(', ')}<br>Highest: $${highest}`;
     notification.style.background = '#44ff44';
     
     // Send to auction tracker
     updateAuction(highest);
   } else {
-    console.log('❌ No bids found in page text');
+    console.log('❌ No valid bids found');
+    notification.innerHTML = '🔍 SCANNING...<br>No bids detected yet';
+    notification.style.background = '#ff8844';
   }
-}, 5000);
+}, 3000);
 
 async function updateAuction(bidAmount) {
   try {
