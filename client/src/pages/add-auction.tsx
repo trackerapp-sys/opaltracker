@@ -65,7 +65,7 @@ export default function AddAuction() {
         startingBid: parseFloat(data.startingBid).toString(),
         currentBid: data.currentBid ? parseFloat(data.currentBid).toString() : undefined,
         maxBid: data.maxBid ? parseFloat(data.maxBid).toString() : undefined,
-        endTime: new Date(data.endTime).toISOString(),
+        endTime: data.endTime, // Send as string, let server handle conversion
       });
       return response.json();
     },

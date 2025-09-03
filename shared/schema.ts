@@ -23,11 +23,15 @@ export const auctions = pgTable("auctions", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
-export const insertAuctionSchema = createInsertSchema(auctions).omit({
-  id: true,
-  createdAt: true,
-  updatedAt: true,
-});
+export const insertAuctionSchema = createInsertSchema(auctions)
+  .omit({
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .extend({
+    endTime: z.string().transform((str) => new Date(str)),
+  });
 
 export type InsertAuction = z.infer<typeof insertAuctionSchema>;
 export type Auction = typeof auctions.$inferSelect;
