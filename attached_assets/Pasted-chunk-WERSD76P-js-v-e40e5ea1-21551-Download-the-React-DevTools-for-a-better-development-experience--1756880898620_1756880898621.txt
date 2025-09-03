@@ -1,0 +1,93 @@
+chunk-WERSD76P.js?v=e40e5ea1:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+Fetch finished loading: GET "<URL>".
+read.js:2530 READ - Host validation failed: {hostName: '', hostType: undefined}
+content.js:2524 Host is not supported
+content.js:2526 Host is not valid or supported
+content.js:2526 Host is not in insights whitelist
+queryClient.ts:15  POST http://localhost:5000/api/auctions 400 (Bad Request)
+apiRequest @ queryClient.ts:15
+mutationFn @ add-auction.tsx:62
+fn @ @tanstack_react-query.js?v=e40e5ea1:1189
+run @ @tanstack_react-query.js?v=e40e5ea1:494
+start @ @tanstack_react-query.js?v=e40e5ea1:536
+execute @ @tanstack_react-query.js?v=e40e5ea1:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=e40e5ea1:2630
+(anonymous) @ @tanstack_react-query.js?v=e40e5ea1:3295
+onSubmit @ add-auction.tsx:92
+(anonymous) @ chunk-CXJMC5RA.js?v=e40e5ea1:1465
+await in (anonymous)
+callCallback2 @ chunk-WERSD76P.js?v=e40e5ea1:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=e40e5ea1:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=e40e5ea1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=e40e5ea1:3736
+executeDispatch @ chunk-WERSD76P.js?v=e40e5ea1:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=e40e5ea1:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=e40e5ea1:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=e40e5ea1:7051
+(anonymous) @ chunk-WERSD76P.js?v=e40e5ea1:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=e40e5ea1:18913
+batchedUpdates @ chunk-WERSD76P.js?v=e40e5ea1:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=e40e5ea1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=e40e5ea1:5478
+dispatchEvent @ chunk-WERSD76P.js?v=e40e5ea1:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=e40e5ea1:5449
+queryClient.ts:15 Fetch failed loading: POST "http://localhost:5000/api/auctions".
+apiRequest @ queryClient.ts:15
+mutationFn @ add-auction.tsx:62
+fn @ @tanstack_react-query.js?v=e40e5ea1:1189
+run @ @tanstack_react-query.js?v=e40e5ea1:494
+start @ @tanstack_react-query.js?v=e40e5ea1:536
+execute @ @tanstack_react-query.js?v=e40e5ea1:1225
+await in execute
+mutate @ @tanstack_react-query.js?v=e40e5ea1:2630
+(anonymous) @ @tanstack_react-query.js?v=e40e5ea1:3295
+onSubmit @ add-auction.tsx:92
+(anonymous) @ chunk-CXJMC5RA.js?v=e40e5ea1:1465
+await in (anonymous)
+callCallback2 @ chunk-WERSD76P.js?v=e40e5ea1:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=e40e5ea1:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=e40e5ea1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=e40e5ea1:3736
+executeDispatch @ chunk-WERSD76P.js?v=e40e5ea1:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=e40e5ea1:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=e40e5ea1:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=e40e5ea1:7051
+(anonymous) @ chunk-WERSD76P.js?v=e40e5ea1:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=e40e5ea1:18913
+batchedUpdates @ chunk-WERSD76P.js?v=e40e5ea1:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=e40e5ea1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=e40e5ea1:5478
+dispatchEvent @ chunk-WERSD76P.js?v=e40e5ea1:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=e40e5ea1:5449
+add-auction.tsx:87 Create auction error: Error: 400: {"message":"Invalid auction data","errors":{"issues":[{"code":"invalid_type","expected":"date","received":"string","path":["endTime"],"message":"Expected date, received string"}],"name":"ZodError"}}
+    at throwIfResNotOk (queryClient.ts:6:11)
+    at async apiRequest (queryClient.ts:22:3)
+    at async Object.mutationFn (add-auction.tsx:62:24)
+onError @ add-auction.tsx:87
+execute @ @tanstack_react-query.js?v=e40e5ea1:1254
+await in execute
+mutate @ @tanstack_react-query.js?v=e40e5ea1:2630
+(anonymous) @ @tanstack_react-query.js?v=e40e5ea1:3295
+onSubmit @ add-auction.tsx:92
+(anonymous) @ chunk-CXJMC5RA.js?v=e40e5ea1:1465
+await in (anonymous)
+callCallback2 @ chunk-WERSD76P.js?v=e40e5ea1:3674
+invokeGuardedCallbackDev @ chunk-WERSD76P.js?v=e40e5ea1:3699
+invokeGuardedCallback @ chunk-WERSD76P.js?v=e40e5ea1:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-WERSD76P.js?v=e40e5ea1:3736
+executeDispatch @ chunk-WERSD76P.js?v=e40e5ea1:7014
+processDispatchQueueItemsInOrder @ chunk-WERSD76P.js?v=e40e5ea1:7034
+processDispatchQueue @ chunk-WERSD76P.js?v=e40e5ea1:7043
+dispatchEventsForPlugins @ chunk-WERSD76P.js?v=e40e5ea1:7051
+(anonymous) @ chunk-WERSD76P.js?v=e40e5ea1:7174
+batchedUpdates$1 @ chunk-WERSD76P.js?v=e40e5ea1:18913
+batchedUpdates @ chunk-WERSD76P.js?v=e40e5ea1:3579
+dispatchEventForPluginEventSystem @ chunk-WERSD76P.js?v=e40e5ea1:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-WERSD76P.js?v=e40e5ea1:5478
+dispatchEvent @ chunk-WERSD76P.js?v=e40e5ea1:5472
+dispatchDiscreteEvent @ chunk-WERSD76P.js?v=e40e5ea1:5449
