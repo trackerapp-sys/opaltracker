@@ -49,13 +49,16 @@ export const insertAuctionSchema = createInsertSchema(auctions)
     updatedAt: true,
   })
   .extend({
-    endTime: z.string().transform((str) => {
-      const parsedDate = parseAustralianDate(str);
-      if (isNaN(parsedDate.getTime())) {
-        throw new Error('Invalid date format. Use DD/MM/YYYY HH:MM or browser datetime picker.');
-      }
-      return parsedDate;
-    }),
+    endTime: z.union([
+      z.string().transform((str) => {
+        const parsedDate = parseAustralianDate(str);
+        if (isNaN(parsedDate.getTime())) {
+          throw new Error('Invalid date format. Use DD/MM/YYYY HH:MM or browser datetime picker.');
+        }
+        return parsedDate;
+      }),
+      z.date()
+    ]),
   });
 
 export type InsertAuction = z.infer<typeof insertAuctionSchema>;
