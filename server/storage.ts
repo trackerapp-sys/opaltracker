@@ -98,6 +98,14 @@ export class MemStorage implements IStorage {
       id,
       createdAt: now,
       updatedAt: now,
+      description: insertAuction.description || null,
+      origin: insertAuction.origin || null,
+      shape: insertAuction.shape || null,
+      postUrl: insertAuction.postUrl || null,
+      currentBid: insertAuction.currentBid || null,
+      maxBid: insertAuction.maxBid || null,
+      notes: insertAuction.notes || null,
+      isWatchlist: insertAuction.isWatchlist || false,
     };
     this.auctions.set(id, auction);
     return auction;

@@ -35,7 +35,20 @@ export default function Auctions() {
   const limit = 10;
 
   const { data, isLoading } = useQuery<AuctionsResponse>({
-    queryKey: ["/api/auctions", { search, opalType, status, priceRange, limit, offset: (currentPage - 1) * limit }],
+    queryKey: ["/api/auctions", search, opalType, status, priceRange, currentPage],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (search) params.append('search', search);
+      if (opalType && opalType !== 'all') params.append('opalType', opalType);
+      if (status && status !== 'all') params.append('status', status);
+      if (priceRange && priceRange !== 'all') params.append('priceRange', priceRange);
+      params.append('limit', limit.toString());
+      params.append('offset', ((currentPage - 1) * limit).toString());
+      
+      const response = await fetch(`/api/auctions?${params.toString()}`);
+      if (!response.ok) throw new Error('Failed to fetch auctions');
+      return response.json();
+    },
   });
 
   const totalPages = Math.ceil((data?.total || 0) / limit);
