@@ -125,7 +125,7 @@ export class AuctionScraper {
 
   async scrapeFacebookPostFallback(url: string): Promise<{ currentBid: string; bidCount: number } | null> {
     try {
-      console.log('🔄 Using HTTP fallback for Facebook post');
+      console.log('🔄 Using HTTP fallback for Facebook post:', url);
       
       // Use fetch with proper headers to try to get content
       const response = await fetch(url, {
@@ -146,16 +146,39 @@ export class AuctionScraper {
       const html = await response.text();
       const $ = cheerio.load(html);
       
-      // Enhanced bid detection patterns for Facebook
-      const bidPatterns = [
-        /\$(\d+(?:\.\d{2})?)/g,  // $123.45
-        /(\d+(?:\.\d{2})?)\s*dollars?/gi,  // 123 dollars
-        /bid:?\s*\$?(\d+(?:\.\d{2})?)/gi,  // bid: $123
-        /current:?\s*\$?(\d+(?:\.\d{2})?)/gi,  // current: $123
-        /offer:?\s*\$?(\d+(?:\.\d{2})?)/gi,  // offer: $123
+      // Try to focus on specific post content and comments sections
+      let postContent = '';
+      
+      // Try different selectors to find the main post and comments
+      const postSelectors = [
+        '[data-pagelet="FeedUnit_0"]',  // Main post content
+        '[role="article"]',             // Article content
+        '[data-testid="post_content"]', // Post content
+        '.userContentWrapper',           // Legacy post wrapper
+        '[data-testid="UFI2Comment"]'   // Comments
       ];
       
-      const text = $.text();
+      for (const selector of postSelectors) {
+        const element = $(selector);
+        if (element.length > 0) {
+          postContent += element.text() + ' ';
+          console.log(`📋 Found content section: ${selector} (${element.text().length} chars)`);
+        }
+      }
+      
+      // If no specific selectors found, fall back to full text but log it
+      const text = postContent.length > 100 ? postContent : $.text();
+      console.log(`📝 Analyzing text content: ${text.length} characters`);
+      
+      // Enhanced bid detection patterns for Facebook - more restrictive
+      const bidPatterns = [
+        // Most specific - bid with context
+        /(?:bid|offer|take)\s*:?\s*\$?(\d{1,3}(?:\.\d{2})?)/gi,
+        // Dollar signs with reasonable amounts only
+        /\$(\d{1,3}(?:\.\d{2})?)/g,
+        // Numbers with "dollars" context
+        /(\d{1,3}(?:\.\d{2})?)\s*dollars?/gi
+      ];
       let highestBid = 0;
       let bidCount = 0;
       
@@ -181,7 +204,8 @@ export class AuctionScraper {
       }
       
       if (highestBid > 0) {
-        console.log('✅ Found bid via HTTP fallback:', highestBid);
+        console.log(`✅ Found highest bid via HTTP fallback: $${highestBid} from ${bidCount} total bids`);
+        console.log(`📊 Content source: ${postContent.length > 100 ? 'Post-specific content' : 'Full page content'}`);
         return {
           currentBid: highestBid.toString(),
           bidCount
