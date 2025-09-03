@@ -149,26 +149,62 @@ export class FacebookCommentMonitor {
             const bidAmount = this.extractBidFromComment(commentText);
             
             if (bidAmount !== null) {
-              // Try to find bidder name - look for parent comment containers
+              // Enhanced bidder name detection with more Facebook selectors
               let bidderName = 'Unknown';
               
-              // Look for nearby name elements in the comment structure
-              const commentContainer = $(element).closest('[data-testid="UFI2Comment"], [role="comment"], .UFIComment');
+              // Try multiple strategies to find the bidder name
+              const nameSelectors = [
+                // Modern Facebook comment structures
+                '[data-testid="UFI2Comment"] a[role="link"]',
+                '[role="comment"] a[role="link"]',
+                '[data-testid="comment_author"]',
+                // Legacy structures
+                '.UFICommentActorName',
+                '.profileLink',
+                '.actorName',
+                // Generic approaches
+                'a[href*="/user/"]',
+                'a[href*="facebook.com/"]',
+                // Broader search within comment containers
+                '[data-testid*="comment"] a',
+                '[role*="comment"] a'
+              ];
+              
+              // Look for comment container first
+              const commentContainer = $(element).closest([
+                '[data-testid="UFI2Comment"]',
+                '[role="comment"]', 
+                '.UFIComment',
+                '[data-testid*="comment"]'
+              ].join(', '));
+              
               if (commentContainer.length > 0) {
-                // Look for profile links or name elements
-                const nameElements = commentContainer.find('a[role="link"], [data-testid="comment_author"], .profileLink');
-                if (nameElements.length > 0) {
-                  bidderName = nameElements.first().text().trim() || 'Unknown';
+                // Try each selector within the comment container
+                for (const selector of nameSelectors) {
+                  const nameElement = commentContainer.find(selector).first();
+                  if (nameElement.length > 0) {
+                    const nameText = nameElement.text().trim();
+                    if (nameText && nameText.length > 0 && nameText.length < 100 && 
+                        !nameText.includes('http') && !nameText.includes('www.') &&
+                        !nameText.match(/^\d+$/)) { // Not just numbers
+                      bidderName = nameText;
+                      break;
+                    }
+                  }
                 }
               }
               
-              // Fallback: look for any nearby link that might be a name
+              // Fallback: scan all nearby links
               if (bidderName === 'Unknown') {
-                const nearbyLinks = $(element).parent().find('a').first();
-                if (nearbyLinks.length > 0) {
-                  const linkText = nearbyLinks.text().trim();
-                  if (linkText.length > 0 && linkText.length < 50 && !linkText.includes('http')) {
+                const nearbyLinks = $(element).parent().parent().find('a');
+                for (let i = 0; i < Math.min(nearbyLinks.length, 5); i++) {
+                  const linkText = $(nearbyLinks[i]).text().trim();
+                  if (linkText && linkText.length > 1 && linkText.length < 50 && 
+                      !linkText.includes('http') && !linkText.includes('ago') &&
+                      !linkText.match(/^\d+$/) && !linkText.includes('Like') &&
+                      !linkText.includes('Reply')) {
                     bidderName = linkText;
+                    break;
                   }
                 }
               }
@@ -200,7 +236,7 @@ export class FacebookCommentMonitor {
       console.log(`📊 Current database bid: $${currentHighest}`);
       
       // Only return the highest bid if it's actually higher than current
-      let finalValidBids = [];
+      let finalValidBids: CommentBid[] = [];
       if (absoluteHighest > currentHighest && absoluteHighest >= startingBid) {
         // Find the bid entry with the highest amount
         const highestBidEntry = foundBids.find(bid => bid.amount === absoluteHighest);

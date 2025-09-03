@@ -94,12 +94,34 @@ setInterval(async () => {
         if (highest > currentBid) {
           console.log(`🚀 UPDATING: $${currentBid} → $${highest}`);
           
+          // Try to find the actual bidder name from the page
+          let bidderName = 'Extension User';
+          const nameSelectors = [
+            '[data-testid="UFI2Comment"] a[role="link"]',
+            '[role="comment"] a[role="link"]', 
+            '.UFICommentActorName',
+            '.profileLink',
+            'a[href*="facebook.com/"]'
+          ];
+          
+          for (const selector of nameSelectors) {
+            const nameElement = document.querySelector(selector);
+            if (nameElement) {
+              const nameText = nameElement.textContent.trim();
+              if (nameText && nameText.length > 1 && nameText.length < 50 && 
+                  !nameText.includes('http') && !nameText.includes('ago')) {
+                bidderName = nameText;
+                break;
+              }
+            }
+          }
+
           const updateResponse = await fetch(`https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions/${auction.id}`, {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               currentBid: highest.toString(),
-              currentBidder: 'Extension User'
+              currentBidder: bidderName
             })
           });
           
