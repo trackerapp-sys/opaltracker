@@ -50,6 +50,95 @@ export class AuctionScraper {
     }
   }
 
+  extractBidsFromText(text: string): { highestBid: number; bidCount: number } {
+    // Clean the text to focus on potential bid content
+    const cleanText = text
+      .replace(/\s+/g, ' ')  // Normalize whitespace
+      .replace(/[^\w\s\$\.\,]/g, ' ')  // Remove special chars except $ . ,
+      .trim();
+
+    console.log(`📝 Analyzing cleaned text: ${cleanText.length} characters`);
+    
+    // Enhanced bid detection patterns - order matters (most specific first)
+    const bidPatterns = [
+      // Dollar amounts with 1-2 decimal places: $25.24, $25.0, $25.00
+      { pattern: /\$(\d{1,3}(?:\.\d{1,2}))/g, priority: 1 },
+      // Dollar amounts without decimals: $25
+      { pattern: /\$(\d{1,3})(?!\d)/g, priority: 2 },
+      // Bid context with dollar: "bid $25", "offer $25.50"
+      { pattern: /(?:bid|offer|take|current)\s*:?\s*\$(\d{1,3}(?:\.\d{1,2})?)/gi, priority: 1 },
+      // Bid context without dollar: "bid 25", "offer 25.50" 
+      { pattern: /(?:bid|offer|take|current)\s*:?\s*(\d{1,3}(?:\.\d{1,2})?)(?!\d)/gi, priority: 2 },
+      // Plain numbers at word boundaries: "25" "25.50" (lowest priority)
+      { pattern: /\b(\d{1,3}(?:\.\d{1,2})?)\b/g, priority: 3 },
+    ];
+
+    const foundBids: Array<{ amount: number; source: string; priority: number }> = [];
+
+    for (const { pattern, priority } of bidPatterns) {
+      let match;
+      const regex = new RegExp(pattern.source, pattern.flags);
+      
+      while ((match = regex.exec(cleanText)) !== null) {
+        const matchText = match[0].trim();
+        const amountStr = match[1];
+        const amount = parseFloat(amountStr);
+
+        // Skip invalid amounts
+        if (isNaN(amount) || amount <= 0) {
+          continue;
+        }
+
+        // Skip obvious non-bid patterns
+        if (/bid\d+/i.test(matchText) && !/\$/.test(matchText)) {
+          console.log(`⚠️ Skipping non-currency pattern: "${matchText}"`);
+          continue;
+        }
+
+        // Skip unrealistic amounts (over $500)
+        if (amount > 500) {
+          console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
+          continue;
+        }
+
+        // Skip common non-bid numbers (years, large IDs, etc.)
+        if (amount > 100 && /20\d{2}|19\d{2}|\d{4,}/.test(amountStr)) {
+          console.log(`⚠️ Skipping year/ID pattern: "${matchText}"`);
+          continue;
+        }
+
+        // Valid bid found
+        if (amount >= 1 && amount <= 500) {
+          console.log(`🔍 Found potential bid: $${amount} from: "${matchText}" (priority ${priority})`);
+          foundBids.push({ amount, source: matchText, priority });
+        }
+      }
+    }
+
+    // Sort bids by priority (lower number = higher priority) then by amount
+    foundBids.sort((a, b) => {
+      if (a.priority !== b.priority) {
+        return a.priority - b.priority;
+      }
+      return b.amount - a.amount;
+    });
+
+    // Remove duplicates and find highest
+    const uniqueBids = foundBids.filter((bid, index, arr) => 
+      arr.findIndex(b => b.amount === bid.amount) === index
+    );
+
+    const highestBid = uniqueBids.length > 0 ? Math.max(...uniqueBids.map(b => b.amount)) : 0;
+    const bidCount = uniqueBids.length;
+
+    if (highestBid > 0) {
+      console.log(`✅ Highest bid found: $${highestBid} from ${bidCount} unique bids`);
+      console.log(`📊 All bids: ${uniqueBids.map(b => `$${b.amount}`).join(', ')}`);
+    }
+
+    return { highestBid, bidCount };
+  }
+
   async scrapeFacebookPost(url: string): Promise<{ currentBid: string; bidCount: number } | null> {
     if (!this.browser) {
       await this.init();
@@ -69,52 +158,44 @@ export class AuctionScraper {
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
       
       // Wait for content to load
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       const content = await page.content();
       const $ = cheerio.load(content);
       
-      // Facebook bid detection patterns
-      const bidPatterns = [
-        /\$(\d+(?:\.\d{2})?)/g,  // $123.45
-        /(\d+(?:\.\d{2})?)\s*dollars?/gi,  // 123 dollars
-        /bid:?\s*\$?(\d+(?:\.\d{2})?)/gi,  // bid: $123
-        /current:?\s*\$?(\d+(?:\.\d{2})?)/gi,  // current: $123
+      // Focus on specific post and comment content only
+      let postContent = '';
+      
+      // Enhanced selectors for Facebook post content and comments
+      const postSelectors = [
+        '[data-pagelet="FeedUnit_0"]',           // Main post content
+        '[role="article"]',                      // Article content  
+        '[data-testid="post_content"]',          // Post content
+        '.userContentWrapper',                    // Legacy post wrapper
+        '[data-testid="UFI2Comment"]',           // Comments
+        '.UFICommentContent',                     // Comment content
+        '.UFICommentBody',                        // Comment body
+        '[role="comment"]',                      // Comment role
+        '.comment',                               // Generic comment class
+        '.fbUserContent',                         // User content
+        '.userContent',                           // User content alt
       ];
       
-      const text = $.text();
-      let highestBid = 0;
-      let bidCount = 0;
-      
-      // Extract all potential bid amounts
-      for (const pattern of bidPatterns) {
-        let match;
-        const regex = new RegExp(pattern.source, pattern.flags);
-        while ((match = regex.exec(text)) !== null) {
-          const matchText = match[0];
-          const amount = parseFloat(match[1] || match[0].replace('$', ''));
-          
-          // Skip obvious non-bid patterns like "bid029", "bid123", etc.
-          if (/bid\d+/i.test(matchText) && !/\$/.test(matchText)) {
-            console.log(`⚠️ Skipping non-currency pattern: "${matchText}"`);
-            continue;
-          }
-          
-          // Filter out unreasonably large amounts (over $500) that are likely not auction bids
-          if (amount >= 1 && amount <= 500) {
-            console.log(`🔍 Found potential bid: $${amount} from: "${matchText}"`);
-            if (amount > highestBid) {
-              highestBid = amount;
-            }
-            bidCount++;
-          } else if (amount > 500) {
-            console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
-          }
-          if (!pattern.global) break;
+      for (const selector of postSelectors) {
+        const element = $(selector);
+        if (element.length > 0) {
+          postContent += element.text() + ' ';
+          console.log(`📋 Found content section: ${selector} (${element.text().length} chars)`);
         }
       }
       
       await page.close();
+      
+      // Extract bids from the focused content
+      let text = postContent.length > 50 ? postContent : $.text();
+      console.log(`📝 Using content: ${text.length} characters (${postContent.length > 50 ? 'post-specific' : 'full page'})`);
+      
+      const { highestBid, bidCount } = this.extractBidsFromText(text);
       
       if (highestBid > 0) {
         return {
@@ -162,7 +243,13 @@ export class AuctionScraper {
         '[role="article"]',             // Article content
         '[data-testid="post_content"]', // Post content
         '.userContentWrapper',           // Legacy post wrapper
-        '[data-testid="UFI2Comment"]'   // Comments
+        '[data-testid="UFI2Comment"]',   // Comments
+        '.UFICommentContent',            // Comment content
+        '.UFICommentBody',               // Comment body
+        '[role="comment"]',              // Comment role
+        '.comment',                      // Generic comment class
+        '.fbUserContent',                // User content
+        '.userContent',                  // User content alt
       ];
       
       for (const selector of postSelectors) {
@@ -173,53 +260,23 @@ export class AuctionScraper {
         }
       }
       
-      // If no specific selectors found, fall back to full text but log it
-      const text = postContent.length > 100 ? postContent : $.text();
-      console.log(`📝 Analyzing text content: ${text.length} characters`);
-      
-      // Enhanced bid detection patterns for Facebook - more restrictive
-      const bidPatterns = [
-        // Dollar signs with reasonable amounts only (most restrictive first)
-        /\$(\d{1,3}(?:\.\d{2})?)/g,
-        // Most specific - bid with context (but avoid "bid029" patterns)
-        /(?:bid|offer|take)\s*:?\s*\$?(\d{1,3}(?:\.\d{2})?)(?!\d)/gi,
-        // Numbers with "dollars" context
-        /(\d{1,3}(?:\.\d{2})?)\s*dollars?/gi
-      ];
-      let highestBid = 0;
-      let bidCount = 0;
-      
-      // Extract all potential bid amounts
-      for (const pattern of bidPatterns) {
-        let match;
-        const regex = new RegExp(pattern.source, pattern.flags);
-        while ((match = regex.exec(text)) !== null) {
-          const matchText = match[0];
-          const amount = parseFloat(match[1] || match[0].replace('$', ''));
-          
-          // Skip obvious non-bid patterns like "bid029", "bid123", etc.
-          if (/bid\d+/i.test(matchText) && !/\$/.test(matchText)) {
-            console.log(`⚠️ Skipping non-currency pattern: "${matchText}"`);
-            continue;
-          }
-          
-          // Filter out unreasonably large amounts (over $500) that are likely not auction bids
-          if (amount >= 1 && amount <= 500) {
-            console.log(`🔍 Found potential bid: $${amount} from: "${matchText}"`);
-            if (amount > highestBid) {
-              highestBid = amount;
-            }
-            bidCount++;
-          } else if (amount > 500) {
-            console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
-          }
-          if (!pattern.global) break;
-        }
+      // Use post content if found, otherwise filter the full page text
+      let text = '';
+      if (postContent.length > 50) {
+        text = postContent;
+        console.log(`📝 Using post-specific content: ${text.length} characters`);
+      } else {
+        // Fall back but try to avoid navigation and sidebar content
+        const bodyText = $('body').text();
+        const excludePatterns = /(Home|News Feed|Profile|Settings|Marketplace|Groups|Pages|Create|Log Out|About|Friends|Photos|More)/gi;
+        text = bodyText.replace(excludePatterns, ' ');
+        console.log(`📝 Using filtered page content: ${text.length} characters`);
       }
+      
+      const { highestBid, bidCount } = this.extractBidsFromText(text);
       
       if (highestBid > 0) {
         console.log(`✅ Found highest bid via HTTP fallback: $${highestBid} from ${bidCount} total bids`);
-        console.log(`📊 Content source: ${postContent.length > 100 ? 'Post-specific content' : 'Full page content'}`);
         return {
           currentBid: highestBid.toString(),
           bidCount
@@ -358,21 +415,9 @@ export class AuctionScraper {
       // If no specific selectors work, try pattern matching on full text
       if (!currentBid) {
         const text = $.text();
-        const bidPatterns = [
-          /current\s*bid:?\s*\$?(\d+(?:\.\d{2})?)/gi,
-          /highest\s*bid:?\s*\$?(\d+(?:\.\d{2})?)/gi,
-          /\$(\d+(?:\.\d{2})?)/g
-        ];
-        
-        for (const pattern of bidPatterns) {
-          const match = text.match(pattern);
-          if (match) {
-            const amount = match[1] || match[0].replace('$', '');
-            if (parseFloat(amount) > 0) {
-              currentBid = amount;
-              break;
-            }
-          }
+        const { highestBid } = this.extractBidsFromText(text);
+        if (highestBid > 0) {
+          currentBid = highestBid.toString();
         }
       }
       
