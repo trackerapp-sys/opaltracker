@@ -43,25 +43,30 @@ export class FacebookCommentMonitor {
     const text = commentText.trim().toLowerCase();
     
     // Skip if too long (probably not a simple bid)
-    if (text.length > 50) return null;
+    if (text.length > 100) return null;
     
-    // Common bid patterns in order of reliability
+    // Enhanced bid patterns - more aggressive detection
     const patterns = [
-      // "bid 25", "offer 25", "take 25"
-      /(?:bid|offer|take)\s*:?\s*\$?(\d{1,3}(?:\.\d{1,2})?)/i,
-      // "$25", "$25.50"  
-      /^\$(\d{1,3}(?:\.\d{1,2})?)$/,
-      // Just "25", "25.50" (only if comment is very short)
-      text.length < 10 ? /^(\d{1,3}(?:\.\d{1,2})?)$/ : null,
-      // "25 dollars", "25 bucks"
-      /^(\d{1,3}(?:\.\d{1,2})?)\s*(dollars?|bucks?)$/i
+      // Standard formats: "bid 25", "offer 25", "take 25"
+      /(?:bid|offer|take|i bid|my bid)\s*:?\s*\$?(\d{1,3}(?:\.\d{1,2})?)/i,
+      // Dollar formats: "$25", "$25.50", "$ 25"
+      /\$\s*(\d{1,3}(?:\.\d{1,2})?)/,
+      // Number + currency: "25 dollars", "25 bucks", "25$"
+      /(\d{1,3}(?:\.\d{1,2})?)\s*(?:dollars?|bucks?|\$)/i,
+      // Standalone numbers (if comment is short and looks like just a bid)
+      text.length <= 15 ? /^(\d{1,3}(?:\.\d{1,2})?)$/ : null,
+      // More natural language: "I'll go 85", "85 for me"
+      /(?:go|for|pay)\s+(\d{1,3})/i,
+      // Any number in reasonable range (broader search)
+      /\b(\d{2,3})\b/
     ].filter(p => p !== null);
 
     for (const pattern of patterns) {
       const match = text.match(pattern!);
       if (match) {
         const amount = parseFloat(match[1]);
-        if (amount >= 1 && amount <= 999) {
+        // Reasonable bid range
+        if (amount >= 10 && amount <= 500) {
           return amount;
         }
       }
@@ -249,12 +254,26 @@ export class FacebookCommentMonitor {
         console.log(`⚪ Highest found ($${absoluteHighest}) not greater than current ($${currentHighest})`);
       }
 
-      // Debug logging
+      // Enhanced debug logging to help troubleshoot
       console.log(`📄 Found ${allCommentTexts.length} text elements total`);
+      
+      // Show ALL text that might contain bids
+      const potentialBids = allCommentTexts.filter(text => 
+        /\d/.test(text) && text.length < 50
+      );
+      
+      if (potentialBids.length > 0) {
+        console.log('🔍 Text containing numbers (potential bids):');
+        potentialBids.slice(0, 15).forEach((text, i) => {
+          const testBid = this.extractBidFromComment(text);
+          console.log(`  ${i + 1}. "${text}" → ${testBid ? `$${testBid}` : 'no bid'}`);
+        });
+      }
+      
       if (allCommentTexts.length > 0) {
-        console.log('📝 Sample text found:');
-        allCommentTexts.slice(0, 10).forEach((text, i) => {
-          console.log(`  ${i + 1}. "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`);
+        console.log('📝 All text elements found:');
+        allCommentTexts.slice(0, 20).forEach((text, i) => {
+          console.log(`  ${i + 1}. "${text.substring(0, 80)}${text.length > 80 ? '...' : ''}"`);
         });
       } else {
         console.log('❌ No text content found - Facebook may be blocking automated access');

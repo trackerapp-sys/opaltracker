@@ -58,12 +58,14 @@ setInterval(async () => {
   const pageText = document.body.innerText;
   console.log('🔍 SCANNING PAGE FOR BIDS...');
   
-  // Multiple bid detection patterns
+  // Enhanced bid detection patterns to catch all formats
   const patterns = [
-    /\$(\d{1,3})/g,           // $45, $55
-    /\b(\d{2,3})\b/g,         // 45, 55 standalone
-    /bid\s*:?\s*(\d{1,3})/gi, // bid 45, bid: 55
-    /(\d{1,3})\s*dollars?/gi  // 45 dollars
+    /\$(\d{1,3})/g,                    // $45, $85
+    /\b(\d{2,3})\b/g,                  // 45, 85 standalone numbers
+    /(?:bid|offer|take)\s*:?\s*(\d{1,3})/gi, // bid 85, offer 85
+    /(\d{1,3})\s*(?:dollars?|bucks?)/gi,     // 85 dollars, 85 bucks
+    /(?:go|pay)\s+(\d{1,3})/gi,       // I'll go 85, pay 85
+    /(\d{1,3})\s*for\s*me/gi          // 85 for me
   ];
   
   let allBids = [];
@@ -71,11 +73,26 @@ setInterval(async () => {
     const matches = [...pageText.matchAll(pattern)];
     for (const match of matches) {
       const bid = parseInt(match[1]);
-      if (bid >= 20 && bid <= 300) {
+      if (bid >= 10 && bid <= 500) {  // Wider range to catch more bids
         allBids.push(bid);
       }
     }
   }
+  
+  // Also scan individual comments for better accuracy
+  const commentElements = document.querySelectorAll('[data-testid="UFI2Comment"], [role="comment"], [dir="auto"]');
+  commentElements.forEach(element => {
+    const commentText = element.textContent || '';
+    if (commentText.length < 50) {  // Short comments more likely to be bids
+      const singleBidMatch = commentText.match(/\b(\d{2,3})\b/);
+      if (singleBidMatch) {
+        const bid = parseInt(singleBidMatch[1]);
+        if (bid >= 10 && bid <= 500) {
+          allBids.push(bid);
+        }
+      }
+    }
+  });
   
   if (allBids.length > 0) {
     const uniqueBids = [...new Set(allBids)].sort((a, b) => b - a);
