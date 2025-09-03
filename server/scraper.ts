@@ -69,7 +69,7 @@ export class AuctionScraper {
       await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
       
       // Wait for content to load
-      await page.waitForTimeout(2000);
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       const content = await page.content();
       const $ = cheerio.load(content);
@@ -88,13 +88,17 @@ export class AuctionScraper {
       
       // Extract all potential bid amounts
       for (const pattern of bidPatterns) {
-        const matches = text.matchAll(pattern);
-        for (const match of matches) {
+        let match;
+        const regex = new RegExp(pattern.source, pattern.flags);
+        while ((match = regex.exec(text)) !== null) {
           const amount = parseFloat(match[1] || match[0].replace('$', ''));
-          if (amount > highestBid) {
+          if (amount > 0 && amount > highestBid) {
             highestBid = amount;
           }
-          bidCount++;
+          if (amount > 0) {
+            bidCount++;
+          }
+          if (!pattern.global) break;
         }
       }
       
@@ -152,8 +156,9 @@ export class AuctionScraper {
       
       // Extract all potential bid amounts
       for (const pattern of bidPatterns) {
-        const matches = text.matchAll(pattern);
-        for (const match of matches) {
+        let match;
+        const regex = new RegExp(pattern.source, pattern.flags);
+        while ((match = regex.exec(text)) !== null) {
           const amount = parseFloat(match[1] || match[0].replace('$', ''));
           if (amount > 0 && amount > highestBid) {
             highestBid = amount;
@@ -161,6 +166,7 @@ export class AuctionScraper {
           if (amount > 0) {
             bidCount++;
           }
+          if (!pattern.global) break;
         }
       }
       
@@ -385,8 +391,7 @@ export class AuctionScraper {
               console.log(`Bid updated for auction ${auction.id}: $${existingBidFloat} -> $${currentBidFloat}`);
               
               await storage.updateAuction(auction.id, {
-                currentBid: update.currentBid,
-                updatedAt: new Date()
+                currentBid: update.currentBid
               });
               
               updatedBids.push(update);
