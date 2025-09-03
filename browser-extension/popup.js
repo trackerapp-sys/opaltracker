@@ -109,17 +109,20 @@ async function loadStatus() {
     // Load auction stats from tracker
     try {
       const settings = await chrome.storage.sync.get(['trackerUrl']);
-      if (settings && settings.trackerUrl) {
+      if (settings && settings.trackerUrl && typeof settings.trackerUrl === 'string') {
         const response = await fetch(`${settings.trackerUrl}/api/analytics`);
         if (response && response.ok) {
           const data = await response.json();
           if (data && typeof data.activeAuctions !== 'undefined') {
-            document.getElementById('activeAuctions').textContent = data.activeAuctions;
+            const activeElement = document.getElementById('activeAuctions');
+            if (activeElement) {
+              activeElement.textContent = data.activeAuctions;
+            }
           }
         }
       }
     } catch (error) {
-      console.log('Could not load tracker stats:', error.message);
+      console.log('Could not load tracker stats:', error?.message || 'Unknown error');
     }
     
   } catch (error) {
