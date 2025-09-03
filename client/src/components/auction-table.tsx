@@ -69,6 +69,21 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
     },
   });
 
+  const refreshBidsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/monitor/check");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      toast({ title: "Success", description: "Bid check completed!" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to check for new bids", variant: "destructive" });
+    },
+  });
+
   const handleQuickBidUpdate = (auction: Auction) => {
     if (!newBid || parseFloat(newBid) <= 0) {
       toast({ title: "Error", description: "Please enter a valid bid amount", variant: "destructive" });
@@ -252,15 +267,12 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                       variant="ghost" 
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
                       onClick={() => {
-                        updateAuctionMutation.mutate({
-                          id: auction.id,
-                          updates: { updatedAt: new Date().toISOString() }
-                        });
+                        refreshBidsMutation.mutate();
                       }}
-                      title="Mark as refreshed"
+                      title="Check for new bids"
                       data-testid={`button-refresh-${auction.id}`}
                     >
-                      <RefreshCw className={`h-4 w-4 ${updateAuctionMutation.isPending ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-4 w-4 ${refreshBidsMutation.isPending ? 'animate-spin' : ''}`} />
                     </Button>
                     <Dialog>
                       <DialogTrigger asChild>

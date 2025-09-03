@@ -63,10 +63,30 @@ async function updateAuction(bidAmount) {
       if (bidAmount > currentBid) {
         console.log(`🚀 UPDATING: $${currentBid} → $${bidAmount}`);
         
+        // Try to get bidder name from Facebook
+        let bidderName = 'Extension User';
+        const nameSelectors = [
+          '[aria-label*="Profile"]',
+          '[data-testid="nav_account_switcher"]',
+          '[role="button"][tabindex="0"] span',
+          'a[href*="/profile.php"] span'
+        ];
+        
+        for (const selector of nameSelectors) {
+          const element = document.querySelector(selector);
+          if (element && element.textContent.trim().length > 0 && element.textContent.trim().length < 50) {
+            bidderName = element.textContent.trim();
+            break;
+          }
+        }
+        
         const updateResponse = await fetch(`https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev/api/auctions/${auction.id}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ currentBid: bidAmount.toString() })
+          body: JSON.stringify({ 
+            currentBid: bidAmount.toString(),
+            currentBidder: bidderName
+          })
         });
         
         if (updateResponse.ok) {
