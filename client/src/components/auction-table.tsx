@@ -19,6 +19,7 @@ interface Auction {
   postUrl?: string;
   startingBid: string;
   currentBid?: string;
+  currentBidder?: string;
   endTime: string;
   status: "active" | "ended" | "won" | "lost";
   updatedAt: string;
@@ -35,6 +36,7 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
   const [newBid, setNewBid] = useState("");
+  const [newBidder, setNewBidder] = useState("");
   const [newStatus, setNewStatus] = useState("");
   const [editForm, setEditForm] = useState({
     opalType: "",
@@ -46,7 +48,7 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
     currentBid: "",
     maxBid: "",
     endTime: "",
-    status: "active" as const,
+    status: "active" as "active" | "ended" | "won" | "lost",
     notes: ""
   });
   const { toast } = useToast();
@@ -63,6 +65,7 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
       toast({ title: "Success", description: "Auction updated successfully!" });
       setSelectedAuction(null);
       setNewBid("");
+      setNewBidder("");
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update auction", variant: "destructive" });
@@ -89,9 +92,27 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
       toast({ title: "Error", description: "Please enter a valid bid amount", variant: "destructive" });
       return;
     }
+    
+    const currentAmount = parseFloat(auction.currentBid || auction.startingBid);
+    const newAmount = parseFloat(newBid);
+    
+    if (newAmount <= currentAmount) {
+      toast({ 
+        title: "Invalid Bid", 
+        description: `Bid must be higher than current ${formatCurrency(currentAmount.toString())}`, 
+        variant: "destructive" 
+      });
+      return;
+    }
+    
+    const updates: any = { currentBid: newAmount.toString() };
+    if (newBidder.trim()) {
+      updates.currentBidder = newBidder.trim();
+    }
+    
     updateAuctionMutation.mutate({
       id: auction.id,
-      updates: { currentBid: parseFloat(newBid).toString() }
+      updates
     });
   };
 
@@ -190,6 +211,39 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                                 value={newBid}
                                 onChange={(e) => setNewBid(e.target.value)}
                                 data-testid="input-new-bid"
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleQuickBidUpdate(auction);
+                                  }
+                                }}
+                                autoFocus
+                              />
+                            </div>
+                            <div className="flex gap-1 mt-2 flex-wrap">
+                              {[5, 10, 15, 20, 25, 30].map((increment) => {
+                                const currentAmount = parseFloat(auction.currentBid || auction.startingBid);
+                                const quickBid = currentAmount + increment;
+                                return (
+                                  <Button
+                                    key={increment}
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-6 px-2 text-xs"
+                                    onClick={() => setNewBid(quickBid.toString())}
+                                    data-testid={`button-quick-bid-${increment}`}
+                                  >
+                                    +${increment}
+                                  </Button>
+                                );
+                              })}
+                            </div>
+                            <div className="mt-2">
+                              <Input
+                                placeholder="Bidder name (optional)"
+                                value={newBidder}
+                                onChange={(e) => setNewBidder(e.target.value)}
+                                data-testid="input-bidder-name"
+                                className="text-sm"
                               />
                             </div>
                           </div>
