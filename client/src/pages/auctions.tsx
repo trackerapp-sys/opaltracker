@@ -28,9 +28,9 @@ interface AuctionsResponse {
 
 export default function Auctions() {
   const [search, setSearch] = useState("");
-  const [opalType, setOpalType] = useState("");
-  const [status, setStatus] = useState("");
-  const [priceRange, setPriceRange] = useState("");
+  const [opalType, setOpalType] = useState("all");
+  const [status, setStatus] = useState("all");
+  const [priceRange, setPriceRange] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const limit = 10;
 

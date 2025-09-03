@@ -1,0 +1,95 @@
+chunk-WERSD76P.js?v=e40e5ea1:21551 Download the React DevTools for a better development experience: https://reactjs.org/link/react-devtools
+queryClient.ts:32  GET http://localhost:5000/api/auctions/[object%20Object] 404 (Not Found)
+(anonymous) @ queryClient.ts:32
+fetchFn @ @tanstack_react-query.js?v=e40e5ea1:840
+run @ @tanstack_react-query.js?v=e40e5ea1:494
+start @ @tanstack_react-query.js?v=e40e5ea1:536
+fetch @ @tanstack_react-query.js?v=e40e5ea1:926
+executeFetch_fn @ @tanstack_react-query.js?v=e40e5ea1:2211
+onSubscribe @ @tanstack_react-query.js?v=e40e5ea1:1898
+subscribe @ @tanstack_react-query.js?v=e40e5ea1:24
+(anonymous) @ @tanstack_react-query.js?v=e40e5ea1:3022
+subscribeToStore @ chunk-WERSD76P.js?v=e40e5ea1:11984
+commitHookEffectListMount @ chunk-WERSD76P.js?v=e40e5ea1:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=e40e5ea1:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=e40e5ea1:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=e40e5ea1:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=e40e5ea1:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=e40e5ea1:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=e40e5ea1:19447
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=e40e5ea1:18868
+flushSyncCallbacks @ chunk-WERSD76P.js?v=e40e5ea1:9119
+commitRootImpl @ chunk-WERSD76P.js?v=e40e5ea1:19432
+commitRoot @ chunk-WERSD76P.js?v=e40e5ea1:19277
+finishConcurrentRender @ chunk-WERSD76P.js?v=e40e5ea1:18805
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=e40e5ea1:18718
+workLoop @ chunk-WERSD76P.js?v=e40e5ea1:197
+flushWork @ chunk-WERSD76P.js?v=e40e5ea1:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=e40e5ea1:384Understand this error
+queryClient.ts:32 Fetch failed loading: GET "http://localhost:5000/api/auctions/[object%20Object]".
+(anonymous) @ queryClient.ts:32
+fetchFn @ @tanstack_react-query.js?v=e40e5ea1:840
+run @ @tanstack_react-query.js?v=e40e5ea1:494
+start @ @tanstack_react-query.js?v=e40e5ea1:536
+fetch @ @tanstack_react-query.js?v=e40e5ea1:926
+executeFetch_fn @ @tanstack_react-query.js?v=e40e5ea1:2211
+onSubscribe @ @tanstack_react-query.js?v=e40e5ea1:1898
+subscribe @ @tanstack_react-query.js?v=e40e5ea1:24
+(anonymous) @ @tanstack_react-query.js?v=e40e5ea1:3022
+subscribeToStore @ chunk-WERSD76P.js?v=e40e5ea1:11984
+commitHookEffectListMount @ chunk-WERSD76P.js?v=e40e5ea1:16915
+commitPassiveMountOnFiber @ chunk-WERSD76P.js?v=e40e5ea1:18156
+commitPassiveMountEffects_complete @ chunk-WERSD76P.js?v=e40e5ea1:18129
+commitPassiveMountEffects_begin @ chunk-WERSD76P.js?v=e40e5ea1:18119
+commitPassiveMountEffects @ chunk-WERSD76P.js?v=e40e5ea1:18109
+flushPassiveEffectsImpl @ chunk-WERSD76P.js?v=e40e5ea1:19490
+flushPassiveEffects @ chunk-WERSD76P.js?v=e40e5ea1:19447
+performSyncWorkOnRoot @ chunk-WERSD76P.js?v=e40e5ea1:18868
+flushSyncCallbacks @ chunk-WERSD76P.js?v=e40e5ea1:9119
+commitRootImpl @ chunk-WERSD76P.js?v=e40e5ea1:19432
+commitRoot @ chunk-WERSD76P.js?v=e40e5ea1:19277
+finishConcurrentRender @ chunk-WERSD76P.js?v=e40e5ea1:18805
+performConcurrentWorkOnRoot @ chunk-WERSD76P.js?v=e40e5ea1:18718
+workLoop @ chunk-WERSD76P.js?v=e40e5ea1:197
+flushWork @ chunk-WERSD76P.js?v=e40e5ea1:176
+performWorkUntilDeadline @ chunk-WERSD76P.js?v=e40e5ea1:384
+content.js:26 Fetch finished loading: GET "chrome-extension://nllcnknpjnininklegdoijpljgdjkijc/content-scripts/content.css".
+loadCss @ content.js:26
+createShadowRootUi @ content.js:25
+createCardsPortalUI @ content.js:26
+main @ content.js:2526
+await in main
+(anonymous) @ content.js:2526
+(anonymous) @ content.js:2526
+(anonymous) @ content.js:2526
+read.js:29 Fetch finished loading: GET "chrome-extension://nllcnknpjnininklegdoijpljgdjkijc/content-scripts/read.css".
+loadCss @ read.js:29
+createShadowRootUi @ read.js:28
+createReadPortalUI @ read.js:2480
+main @ read.js:2530
+await in main
+(anonymous) @ read.js:2530
+(anonymous) @ read.js:2530
+(anonymous) @ read.js:2530
+content.js:26 Fetch finished loading: GET "chrome-extension://nllcnknpjnininklegdoijpljgdjkijc/content-scripts/content.css".
+loadCss @ content.js:26
+createShadowRootUi @ content.js:25
+createSpicesNudgePortalUI @ content.js:26
+main @ content.js:2526
+await in main
+(anonymous) @ content.js:2526
+(anonymous) @ content.js:2526
+(anonymous) @ content.js:2526
+content.js:26 Fetch finished loading: GET "chrome-extension://nllcnknpjnininklegdoijpljgdjkijc/content-scripts/content.css".
+loadCss @ content.js:26
+createShadowRootUi @ content.js:25
+createAppToolbarPortalUI @ content.js:26
+main @ content.js:2526
+await in main
+(anonymous) @ content.js:2526
+(anonymous) @ content.js:2526
+(anonymous) @ content.js:2526
+read.js:2530 READ - Host validation failed: {hostName: '', hostType: undefined}
+content.js:2524 Host is not supported
+content.js:2526 Host is not valid or supported
+content.js:2526 
