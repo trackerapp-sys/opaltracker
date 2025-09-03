@@ -195,9 +195,28 @@ export class FacebookCommentMonitor {
 
       await page.close();
 
-      // Return only valid bids, sorted by amount (highest first)
-      const validBids = foundBids.filter(bid => bid.isValid);
-      validBids.sort((a, b) => b.amount - a.amount);
+      // NEW LOGIC: Find the absolute highest bid regardless of current state
+      // First, get all detected bid amounts
+      const allBidAmounts = foundBids.map(bid => bid.amount);
+      const absoluteHighest = allBidAmounts.length > 0 ? Math.max(...allBidAmounts) : 0;
+      
+      console.log(`🔍 All detected bids: [${allBidAmounts.join(', ')}]`);
+      console.log(`🎯 Absolute highest bid found: $${absoluteHighest}`);
+      console.log(`📊 Current database bid: $${currentHighest}`);
+      
+      // Only return the highest bid if it's actually higher than current
+      let finalValidBids = [];
+      if (absoluteHighest > currentHighest && absoluteHighest >= startingBid) {
+        // Find the bid entry with the highest amount
+        const highestBidEntry = foundBids.find(bid => bid.amount === absoluteHighest);
+        if (highestBidEntry) {
+          highestBidEntry.isValid = true; // Mark as valid since it's the highest
+          finalValidBids = [highestBidEntry];
+          console.log(`✅ NEW HIGHEST BID: $${absoluteHighest} from "${highestBidEntry.bidderName}"`);
+        }
+      } else if (absoluteHighest <= currentHighest) {
+        console.log(`⚪ Highest found ($${absoluteHighest}) not greater than current ($${currentHighest})`);
+      }
 
       // Debug logging
       console.log(`📄 Found ${allCommentTexts.length} text elements total`);
@@ -211,9 +230,9 @@ export class FacebookCommentMonitor {
         console.log('💡 Try using the Chrome extension for direct browser access');
       }
       
-      console.log(`📈 Found ${validBids.length} valid bids out of ${foundBids.length} total`);
+      console.log(`📈 Found ${finalValidBids.length} valid bids out of ${foundBids.length} total`);
       
-      return validBids;
+      return finalValidBids;
 
     } catch (error) {
       console.error('❌ Error checking comments:', error);
