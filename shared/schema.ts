@@ -23,6 +23,25 @@ export const auctions = pgTable("auctions", {
   updatedAt: timestamp("updated_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
 });
 
+// Helper function to parse Australian date formats
+const parseAustralianDate = (dateStr: string): Date => {
+  // Handle datetime-local format (YYYY-MM-DDTHH:MM)
+  if (dateStr.includes('T')) {
+    return new Date(dateStr);
+  }
+  
+  // Handle DD/MM/YYYY HH:MM format
+  if (dateStr.includes('/')) {
+    const [datePart, timePart = '00:00'] = dateStr.split(' ');
+    const [day, month, year] = datePart.split('/');
+    const [hours, minutes] = timePart.split(':');
+    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hours || '0'), parseInt(minutes || '0'));
+  }
+  
+  // Fallback to standard parsing
+  return new Date(dateStr);
+};
+
 export const insertAuctionSchema = createInsertSchema(auctions)
   .omit({
     id: true,
@@ -30,7 +49,13 @@ export const insertAuctionSchema = createInsertSchema(auctions)
     updatedAt: true,
   })
   .extend({
-    endTime: z.string().transform((str) => new Date(str)),
+    endTime: z.string().transform((str) => {
+      const parsedDate = parseAustralianDate(str);
+      if (isNaN(parsedDate.getTime())) {
+        throw new Error('Invalid date format. Use DD/MM/YYYY HH:MM or browser datetime picker.');
+      }
+      return parsedDate;
+    }),
   });
 
 export type InsertAuction = z.infer<typeof insertAuctionSchema>;

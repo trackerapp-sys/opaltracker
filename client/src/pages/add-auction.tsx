@@ -306,11 +306,16 @@ export default function AddAuction() {
                     <FormItem>
                       <FormLabel>End Date & Time *</FormLabel>
                       <FormControl>
-                        <Input 
-                          type="datetime-local"
-                          {...field}
-                          data-testid="input-end-time"
-                        />
+                        <div className="space-y-2">
+                          <Input 
+                            type="datetime-local"
+                            {...field}
+                            data-testid="input-end-time"
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Or enter as: DD/MM/YYYY HH:MM (e.g., 04/01/2025 15:30)
+                          </p>
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
