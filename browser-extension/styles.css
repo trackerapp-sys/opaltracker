@@ -1,0 +1,135 @@
+/* Styles for Opal Auction Tracker Extension */
+
+.opal-tracker-btn {
+  background: #1877f2 !important;
+  color: white !important;
+  border: none !important;
+  padding: 8px 16px !important;
+  border-radius: 6px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  margin-left: 8px !important;
+  transition: background-color 0.2s !important;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.opal-tracker-btn:hover {
+  background: #166fe5 !important;
+}
+
+.opal-tracker-btn:active {
+  background: #144b7a !important;
+}
+
+.opal-tracker-notification {
+  position: fixed !important;
+  top: 20px !important;
+  right: 20px !important;
+  background: #42b883 !important;
+  color: white !important;
+  padding: 16px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+  z-index: 10000 !important;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
+  font-size: 14px !important;
+  max-width: 300px !important;
+  animation: slideIn 0.3s ease-out !important;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.opal-tracker-fab {
+  position: fixed !important;
+  bottom: 20px !important;
+  right: 20px !important;
+  width: 56px !important;
+  height: 56px !important;
+  background: #1877f2 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 24px !important;
+  cursor: pointer !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2) !important;
+  z-index: 9999 !important;
+  transition: all 0.2s !important;
+  border: none !important;
+}
+
+.opal-tracker-fab:hover {
+  transform: scale(1.1) !important;
+  background: #166fe5 !important;
+}
+
+.opal-tracker-modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0,0,0,0.5) !important;
+  z-index: 10001 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.opal-tracker-modal {
+  background: white !important;
+  padding: 24px !important;
+  border-radius: 12px !important;
+  max-width: 400px !important;
+  width: 90% !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.2) !important;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.opal-tracker-modal h3 {
+  margin: 0 0 16px 0 !important;
+  color: #1877f2 !important;
+  font-size: 20px !important;
+}
+
+.opal-tracker-modal p {
+  margin: 0 0 16px 0 !important;
+  color: #65676b !important;
+  font-size: 14px !important;
+}
+
+.opal-tracker-modal button {
+  background: #1877f2 !important;
+  color: white !important;
+  border: none !important;
+  padding: 12px 24px !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  margin-right: 8px !important;
+  font-size: 14px !important;
+  font-family: -apple-system, BlinkMacSystemFont, sans-serif !important;
+}
+
+.opal-tracker-modal button:hover {
+  background: #166fe5 !important;
+}
+
+.opal-tracker-modal button.secondary {
+  background: #e4e6ea !important;
+  color: #1c1e21 !important;
+}
+
+.opal-tracker-modal button.secondary:hover {
+  background: #d8dadf !important;
+}
