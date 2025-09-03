@@ -85,39 +85,95 @@ async function updateAuction(bidAmount) {
       if (bidAmount > currentBid) {
         console.log(`🚀 UPDATING: $${currentBid} → $${bidAmount}`);
         
-        // Enhanced bidder name detection
+        // Enhanced bidder name detection with more comprehensive approach
         let bidderName = 'Extension User';
         
-        // Try multiple approaches to get the user's name
+        // Debug: log all potential name elements
+        console.log('🔍 Searching for Facebook username...');
+        
+        // Most comprehensive list of Facebook name selectors
         const nameSelectors = [
-          // Main navigation profile
-          '[data-testid="nav_account_switcher"] span',
-          '[aria-label*="Your profile"] span',
-          // Profile links
-          'a[href*="/profile.php"] span, a[href*="/profile.php"] div',
-          // Header profile elements
-          'header [role="button"] span',
-          // Any profile-related elements
-          '[data-testid*="profile"] span',
-          // Fallback to any navigation text that looks like a name
-          'nav span[dir="auto"]'
+          // Main navigation and account areas
+          '[data-testid="nav_account_switcher"]',
+          '[aria-label*="Your profile"]',
+          '[aria-label*="Account"]',
+          '[data-testid*="profile"]',
+          
+          // Profile links and buttons
+          'a[href*="/profile.php"]',
+          'a[href*="/me/"]',
+          'a[href^="/"]',
+          
+          // Header and navigation elements
+          'header [role="button"]',
+          'nav [role="button"]',
+          '[role="navigation"] [role="button"]',
+          
+          // Text elements that might contain names
+          'span[dir="auto"]',
+          'div[dir="auto"]',
+          
+          // Facebook-specific classes (these change but worth trying)
+          '[class*="profile"]',
+          '[class*="account"]'
         ];
         
         for (const selector of nameSelectors) {
           const elements = document.querySelectorAll(selector);
-          for (const element of elements) {
-            const text = element.textContent?.trim();
-            if (text && text.length > 0 && text.length < 50 && 
-                !text.includes('Profile') && !text.includes('profile') && 
-                !text.includes('Menu') && !text.includes('menu') &&
-                !text.includes('Search') && !text.includes('Home')) {
-              bidderName = text;
-              console.log(`👤 Found bidder name: ${bidderName}`);
-              break;
+          console.log(`🔎 Checking selector "${selector}" - found ${elements.length} elements`);
+          
+          for (let i = 0; i < elements.length; i++) {
+            const element = elements[i];
+            const texts = [
+              element.textContent?.trim(),
+              element.getAttribute('aria-label'),
+              element.getAttribute('title'),
+              element.querySelector('span')?.textContent?.trim(),
+              element.querySelector('div')?.textContent?.trim()
+            ].filter(t => t);
+            
+            for (const text of texts) {
+              if (text && text.length > 1 && text.length < 50) {
+                // Filter out common non-name text
+                const excludeWords = [
+                  'profile', 'menu', 'search', 'home', 'notifications', 'messages',
+                  'create', 'account', 'settings', 'log out', 'switch', 'see more',
+                  'facebook', 'marketplace', 'groups', 'pages', 'gaming', 'video',
+                  'events', 'ad', 'create post', 'story', 'reel'
+                ];
+                
+                const lowerText = text.toLowerCase();
+                const isExcluded = excludeWords.some(word => lowerText.includes(word));
+                
+                if (!isExcluded && !/^\d+$/.test(text) && text.length > 2) {
+                  bidderName = text;
+                  console.log(`👤 FOUND USERNAME: "${bidderName}" from selector: ${selector}`);
+                  break;
+                }
+              }
             }
+            if (bidderName !== 'Extension User') break;
           }
           if (bidderName !== 'Extension User') break;
         }
+        
+        // If still no name found, try a different approach - look for any likely names in the page
+        if (bidderName === 'Extension User') {
+          console.log('🔄 Trying fallback name detection...');
+          const allText = document.body.innerText;
+          const lines = allText.split('\n').map(l => l.trim()).filter(l => l.length > 0 && l.length < 30);
+          
+          for (const line of lines.slice(0, 20)) { // Check first 20 lines
+            if (line.match(/^[A-Z][a-z]+ [A-Z][a-z]+$/) || // "John Smith" pattern
+                line.match(/^[A-Z][a-z]+$/) && line.length > 2) { // "John" pattern
+              bidderName = line;
+              console.log(`👤 FALLBACK USERNAME: "${bidderName}"`);
+              break;
+            }
+          }
+        }
+        
+        console.log(`✅ Final bidder name: "${bidderName}"`)
         
         // Ensure auction.id is a string
         const auctionId = String(auction.id);
