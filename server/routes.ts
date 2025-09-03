@@ -227,9 +227,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // Start auction monitoring when server starts
-  console.log("🚀 Starting auction bid monitoring system...");
-  auctionMonitor.start();
+  // Server monitoring disabled - Chrome extension handles all detection
+  console.log("🚀 Server ready - Chrome extension will handle bid detection...");
+  // auctionMonitor.start();
   
   return httpServer;
 }
