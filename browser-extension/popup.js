@@ -76,44 +76,58 @@ async function testConnection(url) {
 
 async function loadStatus() {
   try {
-    // Get current tab info
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const currentTab = tabs[0];
+    // Set default status
+    document.getElementById('status').textContent = '⚪ Loading...';
     
-    if (currentTab && currentTab.url && currentTab.url.includes('facebook.com')) {
-      document.getElementById('status').textContent = '🟢 Active on Facebook';
-      
-      // Try to get stats from content script
-      try {
-        const response = await chrome.tabs.sendMessage(currentTab.id, { action: 'getStats' });
-        if (response) {
-          document.getElementById('postsTracked').textContent = response.postsTracked || 0;
+    // Get current tab info with better error handling
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs && tabs[0];
+    
+    if (currentTab && currentTab.url) {
+      if (currentTab.url.includes('facebook.com')) {
+        document.getElementById('status').textContent = '🟢 Active on Facebook';
+        
+        // Try to get stats from content script
+        try {
+          if (currentTab.id) {
+            const response = await chrome.tabs.sendMessage(currentTab.id, { action: 'getStats' });
+            if (response && response.postsTracked !== undefined) {
+              document.getElementById('postsTracked').textContent = response.postsTracked;
+            }
+          }
+        } catch (error) {
+          // Content script might not be loaded yet
+          console.log('Could not get stats from content script');
         }
-      } catch (error) {
-        // Content script might not be loaded yet
-        console.log('Could not get stats from content script');
+      } else {
+        document.getElementById('status').textContent = '⚪ Not on Facebook';
       }
     } else {
-      document.getElementById('status').textContent = '⚪ Not on Facebook';
+      document.getElementById('status').textContent = '⚪ No active tab';
     }
     
     // Load auction stats from tracker
-    const settings = await chrome.storage.sync.get(['trackerUrl']);
-    if (settings.trackerUrl) {
-      try {
+    try {
+      const settings = await chrome.storage.sync.get(['trackerUrl']);
+      if (settings && settings.trackerUrl) {
         const response = await fetch(`${settings.trackerUrl}/api/analytics`);
-        if (response.ok) {
+        if (response && response.ok) {
           const data = await response.json();
-          document.getElementById('activeAuctions').textContent = data.activeAuctions || 0;
+          if (data && typeof data.activeAuctions !== 'undefined') {
+            document.getElementById('activeAuctions').textContent = data.activeAuctions;
+          }
         }
-      } catch (error) {
-        console.log('Could not load tracker stats');
       }
+    } catch (error) {
+      console.log('Could not load tracker stats:', error.message);
     }
     
   } catch (error) {
     console.error('Failed to load status:', error);
-    document.getElementById('status').textContent = '❌ Error';
+    const statusElement = document.getElementById('status');
+    if (statusElement) {
+      statusElement.textContent = '❌ Error loading status';
+    }
   }
 }
 

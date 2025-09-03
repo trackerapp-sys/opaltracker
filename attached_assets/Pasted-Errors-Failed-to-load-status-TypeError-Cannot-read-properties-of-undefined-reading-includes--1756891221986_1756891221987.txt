@@ -1,0 +1,310 @@
+Errors
+Failed to load status: TypeError: Cannot read properties of undefined (reading 'includes')
+Context
+popup.html
+Stack Trace
+popup.js:115 (loadStatus)
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121
+122
+123
+124
+125
+126
+127
+128
+129
+130
+131
+132
+133
+134
+135
+136
+137
+138
+139
+140
+141
+142
+143
+144
+145
+146
+147
+148
+149
+150
+151
+152
+// Popup script for Opal Auction Tracker Extension
+
+document.addEventListener('DOMContentLoaded', function() {
+  loadSettings();
+  loadStatus();
+  
+  // Event listeners
+  document.getElementById('saveSettings').addEventListener('click', saveSettings);
+  document.getElementById('openTracker').addEventListener('click', openTracker);
+});
+
+async function loadSettings() {
+  try {
+    const settings = await chrome.storage.sync.get([
+      'trackerUrl', 
+      'autoTrack', 
+      'notifications'
+    ]);
+    
+    document.getElementById('trackerUrl').value = settings.trackerUrl || '';
+    document.getElementById('autoTrack').checked = settings.autoTrack || false;
+    document.getElementById('notifications').checked = settings.notifications || false;
+  } catch (error) {
+    console.error('Failed to load settings:', error);
+  }
+}
+
+async function saveSettings() {
+  const trackerUrl = document.getElementById('trackerUrl').value.trim();
+  const autoTrack = document.getElementById('autoTrack').checked;
+  const notifications = document.getElementById('notifications').checked;
+  
+  // Validate URL
+  if (trackerUrl) {
+    try {
+      new URL(trackerUrl);
+    } catch (error) {
+      showError('Please enter a valid URL');
+      return;
+    }
+  }
+  
+  try {
+    await chrome.storage.sync.set({
+      trackerUrl,
+      autoTrack,
+      notifications
+    });
+    
+    showSuccess('Settings saved successfully!');
+    
+    // Test connection to tracker
+    if (trackerUrl) {
+      testConnection(trackerUrl);
+    }
+    
+  } catch (error) {
+    showError('Failed to save settings');
+    console.error('Save error:', error);
+  }
+}
+
+async function testConnection(url) {
+  try {
+    const response = await fetch(`${url}/api/analytics`);
+    if (response.ok) {
+      showSuccess('✅ Connected to tracker successfully!');
+      loadStatus(); // Refresh status
+    } else {
+      showError('⚠️ Could not connect to tracker. Check your URL.');
+    }
+  } catch (error) {
+    showError('⚠️ Could not reach tracker. Check your URL and internet connection.');
+  }
+}
+
+async function loadStatus() {
+  try {
+    // Get current tab info
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const currentTab = tabs[0];
+    
+    if (currentTab && currentTab.url && currentTab.url.includes('facebook.com')) {
+      document.getElementById('status').textContent = '🟢 Active on Facebook';
+      
+      // Try to get stats from content script
+      try {
+        const response = await chrome.tabs.sendMessage(currentTab.id, { action: 'getStats' });
+        if (response) {
+          document.getElementById('postsTracked').textContent = response.postsTracked || 0;
+        }
+      } catch (error) {
+        // Content script might not be loaded yet
+        console.log('Could not get stats from content script');
+      }
+    } else {
+      document.getElementById('status').textContent = '⚪ Not on Facebook';
+    }
+    
+    // Load auction stats from tracker
+    const settings = await chrome.storage.sync.get(['trackerUrl']);
+    if (settings.trackerUrl) {
+      try {
+        const response = await fetch(`${settings.trackerUrl}/api/analytics`);
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('activeAuctions').textContent = data.activeAuctions || 0;
+        }
+      } catch (error) {
+        console.log('Could not load tracker stats');
+      }
+    }
+    
+  } catch (error) {
+    console.error('Failed to load status:', error);
+    document.getElementById('status').textContent = '❌ Error';
+  }
+}
+
+async function openTracker() {
+  const settings = await chrome.storage.sync.get(['trackerUrl']);
+  if (settings.trackerUrl) {
+    chrome.tabs.create({ url: settings.trackerUrl });
+  } else {
+    showError('Please set your tracker URL first');
+  }
+}
+
+function showSuccess(message) {
+  const element = document.getElementById('successMessage');
+  element.textContent = message;
+  element.style.display = 'block';
+  setTimeout(() => {
+    element.style.display = 'none';
+  }, 3000);
+}
+
+function showError(message) {
+  const element = document.getElementById('errorMessage');
+  element.textContent = message;
+  element.style.display = 'block';
+  setTimeout(() => {
+    element.style.display = 'none';
+  }, 5000);
+}
+
+// Listen for messages from content script
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'updateStats') {
+    loadStatus();
+  }
+});
