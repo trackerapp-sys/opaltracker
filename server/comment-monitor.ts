@@ -123,18 +123,25 @@ export class FacebookCommentMonitor {
       const $ = cheerio.load(content);
 
       const foundBids: CommentBid[] = [];
+      const allCommentTexts: string[] = [];
 
       // Facebook comment selectors - focus on actual comment text
       const commentSelectors = [
         '[data-testid="UFI2Comment"] [dir="auto"]',    // Modern comments
         '[role="comment"] [dir="auto"]',               // Comment role
         '.UFICommentBody',                             // Legacy comments
-        '[data-testid="comment"] [dir="auto"]'         // Generic comments
+        '[data-testid="comment"] [dir="auto"]',        // Generic comments
+        '[dir="auto"]'                                 // All auto-direction text (broader search)
       ];
 
       commentSelectors.forEach(selector => {
         $(selector).each((_, element) => {
           const commentText = $(element).text().trim();
+          
+          // Collect all text for debugging
+          if (commentText.length > 0 && commentText.length < 200) {
+            allCommentTexts.push(commentText);
+          }
           
           // Only process short, comment-like text
           if (commentText.length > 0 && commentText.length < 100) {
@@ -166,6 +173,18 @@ export class FacebookCommentMonitor {
       const validBids = foundBids.filter(bid => bid.isValid);
       validBids.sort((a, b) => b.amount - a.amount);
 
+      // Debug logging
+      console.log(`📄 Found ${allCommentTexts.length} text elements total`);
+      if (allCommentTexts.length > 0) {
+        console.log('📝 Sample text found:');
+        allCommentTexts.slice(0, 10).forEach((text, i) => {
+          console.log(`  ${i + 1}. "${text.substring(0, 60)}${text.length > 60 ? '...' : ''}"`);
+        });
+      } else {
+        console.log('❌ No text content found - Facebook may be blocking automated access');
+        console.log('💡 Try using the Chrome extension for direct browser access');
+      }
+      
       console.log(`📈 Found ${validBids.length} valid bids out of ${foundBids.length} total`);
       
       return validBids;
