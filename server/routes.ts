@@ -40,12 +40,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create new auction
   app.post("/api/auctions", async (req, res) => {
     try {
+      console.log("Received auction data:", req.body);
       const validatedData = insertAuctionSchema.parse(req.body);
+      console.log("Validated data:", validatedData);
       const auction = await storage.createAuction(validatedData);
       res.status(201).json(auction);
     } catch (error) {
       console.error("Error creating auction:", error);
       if (error instanceof Error && error.name === "ZodError") {
+        console.error("Zod validation error:", JSON.stringify(error, null, 2));
         return res.status(400).json({ message: "Invalid auction data", errors: error });
       }
       res.status(500).json({ message: "Failed to create auction" });
