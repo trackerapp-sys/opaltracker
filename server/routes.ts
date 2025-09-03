@@ -183,39 +183,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auction monitoring endpoints
   app.get("/api/monitor/status", async (req, res) => {
-    try {
-      const status = auctionMonitor.getStatus();
-      res.json(status);
-    } catch (error) {
-      console.error("Error getting monitor status:", error);
-      res.status(500).json({ message: "Failed to get monitor status" });
-    }
+    res.json({ running: false, message: "Chrome extension handles detection" });
   });
 
   app.post("/api/monitor/start", async (req, res) => {
-    try {
-      auctionMonitor.start();
-      res.json({ message: "Auction monitoring started", status: auctionMonitor.getStatus() });
-    } catch (error) {
-      console.error("Error starting monitor:", error);
-      res.status(500).json({ message: "Failed to start monitor" });
-    }
+    res.json({ message: "Server monitoring disabled - use Chrome extension", status: { running: false } });
   });
 
   app.post("/api/monitor/stop", async (req, res) => {
-    try {
-      auctionMonitor.stop();
-      res.json({ message: "Auction monitoring stopped", status: auctionMonitor.getStatus() });
-    } catch (error) {
-      console.error("Error stopping monitor:", error);
-      res.status(500).json({ message: "Failed to stop monitor" });
-    }
+    res.json({ message: "Server monitoring already disabled", status: { running: false } });
   });
 
   app.post("/api/monitor/check", async (req, res) => {
-    // Server monitoring disabled - Chrome extension handles detection
+    // ALL MONITORING DISABLED - Extension only
     res.json({ 
-      message: "Chrome extension handles all bid detection automatically.",
+      message: "Server monitoring completely disabled. Use Chrome extension.",
       updates: []
     });
   });

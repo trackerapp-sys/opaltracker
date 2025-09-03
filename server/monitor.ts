@@ -31,8 +31,8 @@ export class AuctionMonitor {
     this.cronJob.start();
     this.isRunning = true;
 
-    // Initialize comment monitor
-    commentMonitor.init().catch(console.error);
+    // Comment monitor disabled - Chrome extension handles detection
+    // commentMonitor.init().catch(console.error);
   }
 
   stop() {
