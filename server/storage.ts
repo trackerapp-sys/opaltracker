@@ -58,15 +58,15 @@ export class MemStorage implements IStorage {
       );
     }
 
-    if (filters?.opalType && filters.opalType !== "All Types") {
+    if (filters?.opalType && filters.opalType !== "all") {
       allAuctions = allAuctions.filter(auction => auction.opalType === filters.opalType);
     }
 
-    if (filters?.status && filters.status !== "All Status") {
+    if (filters?.status && filters.status !== "all") {
       allAuctions = allAuctions.filter(auction => auction.status === filters.status);
     }
 
-    if (filters?.priceRange && filters.priceRange !== "All Prices") {
+    if (filters?.priceRange && filters.priceRange !== "all") {
       allAuctions = allAuctions.filter(auction => {
         const currentBid = parseFloat(auction.currentBid || auction.startingBid);
         switch (filters.priceRange) {
