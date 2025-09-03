@@ -10,6 +10,7 @@ import AddAuction from "@/pages/add-auction";
 import Analytics from "@/pages/analytics";
 import Export from "@/pages/export";
 import BulkUpdate from "@/pages/bulk-update";
+import Monitor from "@/pages/monitor";
 import Sidebar from "@/components/sidebar";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
           <Route path="/analytics" component={Analytics} />
           <Route path="/export" component={Export} />
           <Route path="/bulk-update" component={BulkUpdate} />
+          <Route path="/monitor" component={Monitor} />
           <Route component={NotFound} />
         </Switch>
       </main>

@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAuctionSchema } from "@shared/schema";
+import { auctionMonitor } from "./monitor";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all auctions with optional filters
@@ -180,6 +181,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Auction monitoring endpoints
+  app.get("/api/monitor/status", async (req, res) => {
+    try {
+      const status = auctionMonitor.getStatus();
+      res.json(status);
+    } catch (error) {
+      console.error("Error getting monitor status:", error);
+      res.status(500).json({ message: "Failed to get monitor status" });
+    }
+  });
+
+  app.post("/api/monitor/start", async (req, res) => {
+    try {
+      auctionMonitor.start();
+      res.json({ message: "Auction monitoring started", status: auctionMonitor.getStatus() });
+    } catch (error) {
+      console.error("Error starting monitor:", error);
+      res.status(500).json({ message: "Failed to start monitor" });
+    }
+  });
+
+  app.post("/api/monitor/stop", async (req, res) => {
+    try {
+      auctionMonitor.stop();
+      res.json({ message: "Auction monitoring stopped", status: auctionMonitor.getStatus() });
+    } catch (error) {
+      console.error("Error stopping monitor:", error);
+      res.status(500).json({ message: "Failed to stop monitor" });
+    }
+  });
+
+  app.post("/api/monitor/check", async (req, res) => {
+    try {
+      const updates = await auctionMonitor.manualCheck();
+      res.json({ 
+        message: `Manual check completed. Found ${updates.length} updates.`,
+        updates 
+      });
+    } catch (error) {
+      console.error("Error during manual check:", error);
+      res.status(500).json({ message: "Failed to perform manual check" });
+    }
+  });
+
   const httpServer = createServer(app);
+  
+  // Start auction monitoring when server starts
+  console.log("🚀 Starting auction bid monitoring system...");
+  auctionMonitor.start();
+  
   return httpServer;
 }
