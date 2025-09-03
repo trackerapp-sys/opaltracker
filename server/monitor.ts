@@ -1,5 +1,13 @@
 import * as cron from 'node-cron';
-import { auctionScraper, BidUpdate } from './scraper';
+import { commentMonitor } from './comment-monitor';
+import { storage } from './storage';
+
+export interface BidUpdate {
+  auctionId: string;
+  currentBid: string;
+  bidCount?: number;
+  lastUpdated: Date;
+}
 
 export class AuctionMonitor {
   private isRunning = false;
@@ -23,8 +31,8 @@ export class AuctionMonitor {
     this.cronJob.start();
     this.isRunning = true;
 
-    // Initialize browser on startup
-    auctionScraper.init().catch(console.error);
+    // Initialize comment monitor
+    commentMonitor.init().catch(console.error);
   }
 
   stop() {
@@ -35,8 +43,8 @@ export class AuctionMonitor {
     this.isRunning = false;
     console.log('Auction monitor stopped');
     
-    // Close browser
-    auctionScraper.close().catch(console.error);
+    // Close comment monitor
+    commentMonitor.close().catch(console.error);
   }
 
   async checkAllAuctions(): Promise<BidUpdate[]> {
@@ -44,7 +52,9 @@ export class AuctionMonitor {
 
     try {
       console.log('🔍 Checking all auctions for bid updates...');
-      const updates = await auctionScraper.updateAuctionBids();
+      
+      // Use new comment-focused monitoring
+      const updates = await this.checkAuctionsWithCommentMonitor();
       
       if (updates.length > 0) {
         console.log(`✅ Found ${updates.length} bid updates:`);
@@ -60,6 +70,49 @@ export class AuctionMonitor {
       console.error('❌ Error during auction monitoring:', error);
       return [];
     }
+  }
+  
+  private async checkAuctionsWithCommentMonitor(): Promise<BidUpdate[]> {
+    const updates: BidUpdate[] = [];
+    
+    try {
+      const auctions = await storage.getAuctions({ status: 'active' });
+      
+      for (const auction of auctions.auctions) {
+        if (!auction.postUrl) continue;
+        
+        const currentBid = parseFloat(auction.currentBid || auction.startingBid);
+        const startingBid = parseFloat(auction.startingBid);
+        
+        console.log(`Checking auction ${auction.id}: ${auction.opalType} - Current: $${currentBid}`);
+        
+        const newHighestBid = await commentMonitor.getHighestBid(
+          auction.postUrl, 
+          currentBid, 
+          startingBid
+        );
+        
+        if (newHighestBid && newHighestBid > currentBid) {
+          console.log(`✅ New bid found for ${auction.id}: $${currentBid} → $${newHighestBid}`);
+          
+          const updateResult = await storage.updateAuction(auction.id, {
+            currentBid: newHighestBid.toString()
+          });
+          
+          if (updateResult) {
+            updates.push({
+              auctionId: auction.id,
+              currentBid: newHighestBid.toString(),
+              lastUpdated: new Date()
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error in comment monitoring:', error);
+    }
+    
+    return updates;
   }
 
   async manualCheck(): Promise<BidUpdate[]> {
