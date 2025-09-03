@@ -53,43 +53,71 @@ notification.onclick = async () => {
 
 document.body.appendChild(notification);
 
-// Auto scan for bids every 3 seconds with aggressive detection
+// Automatic bid detection every 10 seconds - TRUE AUTOMATION
 setInterval(async () => {
-  const pageText = document.body.innerText;
-  console.log('🔍 SCANNING PAGE FOR BIDS...');
+  console.log('🤖 AUTO-SCANNING FOR NEW BIDS...');
   
-  // Enhanced bid detection patterns to catch all formats
-  const patterns = [
-    /\$(\d{1,3})/g,                    // $45, $85
-    /\b(\d{2,3})\b/g,                  // 45, 85 standalone numbers
-    /(?:bid|offer|take)\s*:?\s*(\d{1,3})/gi, // bid 85, offer 85
-    /(\d{1,3})\s*(?:dollars?|bucks?)/gi,     // 85 dollars, 85 bucks
-    /(?:go|pay)\s+(\d{1,3})/gi,       // I'll go 85, pay 85
-    /(\d{1,3})\s*for\s*me/gi          // 85 for me
+  // Get ALL comments from the page using multiple selectors
+  const commentSelectors = [
+    '[data-testid="UFI2Comment"] [dir="auto"]',
+    '[role="comment"] [dir="auto"]', 
+    '.UFICommentBody',
+    '[data-testid="comment"] [dir="auto"]',
+    '.UFIComment .UFICommentBody',
+    'div[dir="auto"]' // Broader search
+  ];
+  
+  let allComments = [];
+  commentSelectors.forEach(selector => {
+    const elements = document.querySelectorAll(selector);
+    elements.forEach(el => {
+      const text = el.textContent?.trim();
+      if (text && text.length < 50) { // Short comments more likely to be bids
+        allComments.push(text);
+      }
+    });
+  });
+  
+  // Enhanced bid patterns to catch everything
+  const bidPatterns = [
+    /\$(\d{1,3})/g,                    // $200, $85
+    /\b(\d{2,3})\b/g,                  // 200, 85 standalone
+    /(?:bid|offer|take)\s*:?\s*(\d{1,3})/gi, // bid 200
+    /(\d{1,3})\s*(?:dollars?|bucks?)/gi,     // 200 dollars
+    /(?:go|pay)\s+(\d{1,3})/gi,       // I'll go 200
+    /(\d{1,3})\s*for\s*me/gi          // 200 for me
   ];
   
   let allBids = [];
-  for (const pattern of patterns) {
-    const matches = [...pageText.matchAll(pattern)];
-    for (const match of matches) {
-      const bid = parseInt(match[1]);
-      if (bid >= 10 && bid <= 500) {  // Wider range to catch more bids
-        allBids.push(bid);
-      }
-    }
-  }
   
-  // Also scan individual comments for better accuracy
-  const commentElements = document.querySelectorAll('[data-testid="UFI2Comment"], [role="comment"], [dir="auto"]');
-  commentElements.forEach(element => {
-    const commentText = element.textContent || '';
-    if (commentText.length < 50) {  // Short comments more likely to be bids
-      const singleBidMatch = commentText.match(/\b(\d{2,3})\b/);
-      if (singleBidMatch) {
-        const bid = parseInt(singleBidMatch[1]);
-        if (bid >= 10 && bid <= 500) {
+  // Process each comment for bid detection
+  console.log(`📝 Found ${allComments.length} comments to analyze`);
+  
+  allComments.forEach(commentText => {
+    bidPatterns.forEach(pattern => {
+      const matches = [...commentText.matchAll(pattern)];
+      matches.forEach(match => {
+        const bid = parseInt(match[1]);
+        if (bid >= 20 && bid <= 1000) {  // Expanded range for higher bids
           allBids.push(bid);
+          console.log(`💰 Found bid: $${bid} in comment: "${commentText}"`);
         }
+      });
+    });
+  });
+  
+  // Also check page text for any missed bids
+  const pageText = document.body.innerText;
+  const pageMatches = [...pageText.matchAll(/\b(\d{2,4})\b/g)];
+  pageMatches.forEach(match => {
+    const num = parseInt(match[1]);
+    if (num >= 50 && num <= 1000) {
+      // Check if this number appears in a bid-like context
+      const context = pageText.substring(match.index - 20, match.index + 20);
+      if (!context.includes('members') && !context.includes('carats') && 
+          !context.includes('date') && !context.includes('time') &&
+          !context.includes('shipping') && !context.includes('comments')) {
+        allBids.push(num);
       }
     }
   });
@@ -111,25 +139,27 @@ setInterval(async () => {
         if (highest > currentBid) {
           console.log(`🚀 UPDATING: $${currentBid} → $${highest}`);
           
-          // Try to find the actual bidder name from the page
-          let bidderName = 'Extension User';
-          const nameSelectors = [
-            '[data-testid="UFI2Comment"] a[role="link"]',
-            '[role="comment"] a[role="link"]', 
-            '.UFICommentActorName',
-            '.profileLink',
-            'a[href*="facebook.com/"]'
-          ];
+          // Enhanced bidder name detection
+          let bidderName = 'Auto-detected';
           
-          for (const selector of nameSelectors) {
-            const nameElement = document.querySelector(selector);
-            if (nameElement) {
-              const nameText = nameElement.textContent.trim();
-              if (nameText && nameText.length > 1 && nameText.length < 50 && 
-                  !nameText.includes('http') && !nameText.includes('ago')) {
-                bidderName = nameText;
-                break;
+          // Try to find the name associated with the highest bid
+          const commentContainers = document.querySelectorAll('[data-testid="UFI2Comment"], [role="comment"]');
+          
+          for (const container of commentContainers) {
+            const containerText = container.textContent || '';
+            // If this container has the highest bid, find the name
+            if (containerText.includes(highest.toString()) || containerText.includes(`$${highest}`)) {
+              const nameElements = container.querySelectorAll('a[role="link"], .UFICommentActorName, .profileLink');
+              for (const nameEl of nameElements) {
+                const nameText = nameEl.textContent?.trim();
+                if (nameText && nameText.length > 1 && nameText.length < 50 && 
+                    !nameText.includes('http') && !nameText.includes('ago') &&
+                    !nameText.includes('Like') && !nameText.includes('Reply')) {
+                  bidderName = nameText;
+                  break;
+                }
               }
+              if (bidderName !== 'Auto-detected') break;
             }
           }
 
@@ -159,6 +189,6 @@ setInterval(async () => {
   } else {
     console.log('❌ No bids found in scan');
   }
-}, 3000);
+}, 10000);  // Check every 10 seconds for true automation
 
 console.log('🎯 Extension ready - click red box to test!');
