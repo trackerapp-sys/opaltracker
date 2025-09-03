@@ -86,23 +86,27 @@ export class AuctionMonitor {
         
         console.log(`Checking auction ${auction.id}: ${auction.opalType} - Current: $${currentBid}`);
         
-        const newHighestBid = await commentMonitor.getHighestBid(
+        const newBids = await commentMonitor.checkForNewBids(
           auction.postUrl, 
           currentBid, 
           startingBid
         );
         
-        if (newHighestBid && newHighestBid > currentBid) {
-          console.log(`✅ New bid found for ${auction.id}: $${currentBid} → $${newHighestBid}`);
+        // Get the highest valid bid
+        const validBids = newBids.filter(bid => bid.isValid);
+        if (validBids.length > 0) {
+          const highestBid = validBids[0]; // Already sorted by amount
+          console.log(`✅ New bid found for ${auction.id}: $${currentBid} → $${highestBid.amount} from ${highestBid.bidderName}`);
           
           const updateResult = await storage.updateAuction(auction.id, {
-            currentBid: newHighestBid.toString()
+            currentBid: highestBid.amount.toString(),
+            currentBidder: highestBid.bidderName
           });
           
           if (updateResult) {
             updates.push({
               auctionId: auction.id,
-              currentBid: newHighestBid.toString(),
+              currentBid: highestBid.amount.toString(),
               lastUpdated: new Date()
             });
           }

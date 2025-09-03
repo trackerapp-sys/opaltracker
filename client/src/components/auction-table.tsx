@@ -141,7 +141,12 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                 </td>
                 <td className="px-6 py-4 text-sm font-medium text-foreground" data-testid={`current-bid-${auction.id}`}>
                   <div className="flex items-center space-x-2">
-                    <span>{formatCurrency(auction.currentBid || auction.startingBid)}</span>
+                    <div className="flex flex-col">
+                      <span>{formatCurrency(auction.currentBid || auction.startingBid)}</span>
+                      {auction.currentBidder && (
+                        <span className="text-xs text-muted-foreground">by {auction.currentBidder}</span>
+                      )}
+                    </div>
                     <Dialog>
                       <DialogTrigger asChild>
                         <Button 

@@ -4,6 +4,7 @@ import * as cheerio from 'cheerio';
 export interface CommentBid {
   amount: number;
   commentText: string;
+  bidderName: string;
   timestamp: Date;
   isValid: boolean;
 }
@@ -148,19 +149,44 @@ export class FacebookCommentMonitor {
             const bidAmount = this.extractBidFromComment(commentText);
             
             if (bidAmount !== null) {
+              // Try to find bidder name - look for parent comment containers
+              let bidderName = 'Unknown';
+              
+              // Look for nearby name elements in the comment structure
+              const commentContainer = $(element).closest('[data-testid="UFI2Comment"], [role="comment"], .UFIComment');
+              if (commentContainer.length > 0) {
+                // Look for profile links or name elements
+                const nameElements = commentContainer.find('a[role="link"], [data-testid="comment_author"], .profileLink');
+                if (nameElements.length > 0) {
+                  bidderName = nameElements.first().text().trim() || 'Unknown';
+                }
+              }
+              
+              // Fallback: look for any nearby link that might be a name
+              if (bidderName === 'Unknown') {
+                const nearbyLinks = $(element).parent().find('a').first();
+                if (nearbyLinks.length > 0) {
+                  const linkText = nearbyLinks.text().trim();
+                  if (linkText.length > 0 && linkText.length < 50 && !linkText.includes('http')) {
+                    bidderName = linkText;
+                  }
+                }
+              }
+              
               const isValid = this.isValidBid(bidAmount, currentHighest, startingBid);
               
               foundBids.push({
                 amount: bidAmount,
                 commentText: commentText.substring(0, 50),
+                bidderName: bidderName.substring(0, 50), // Limit name length
                 timestamp: new Date(),
                 isValid
               });
 
               if (isValid) {
-                console.log(`✅ Valid bid: $${bidAmount} from: "${commentText.substring(0, 30)}..."`);
+                console.log(`✅ Valid bid: $${bidAmount} from: "${bidderName}" (${commentText.substring(0, 30)}...)`);
               } else {
-                console.log(`⚠️ Invalid bid: $${bidAmount} from: "${commentText.substring(0, 30)}..."`);
+                console.log(`⚠️ Invalid bid: $${bidAmount} from: "${bidderName}" (${commentText.substring(0, 30)}...)`);
               }
             }
           }

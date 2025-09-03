@@ -14,6 +14,7 @@ export const auctions = pgTable("auctions", {
   postUrl: text("post_url"),
   startingBid: decimal("starting_bid", { precision: 10, scale: 2 }).notNull(),
   currentBid: decimal("current_bid", { precision: 10, scale: 2 }),
+  currentBidder: text("current_bidder"),
   maxBid: decimal("max_bid", { precision: 10, scale: 2 }),
   endTime: timestamp("end_time").notNull(),
   status: text("status", { enum: ["active", "ended", "won", "lost"] }).default("active").notNull(),
