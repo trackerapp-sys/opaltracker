@@ -30,108 +30,80 @@ export class FacebookScraper {
     }
   }
 
-  // Strategy 1: Advanced DOM scraping with multiple selectors
+  // Strategy 1: Advanced DOM scraping with multiple selectors (stack-safe version)
   private async extractBidsAdvanced(page: any): Promise<{ bids: number[], comments: string[] }> {
     return await page.evaluate(() => {
       const allBids: number[] = [];
       const allComments: string[] = [];
       
-      // Strategy 1: Look for text nodes containing just numbers (bid pattern)
-      const textNodes = document.evaluate(
-        '//text()[normalize-space(.) != ""]',
-        document,
-        null,
-        XPathResult.ORDERED_NODE_SNAPSHOT_TYPE,
-        null
-      );
+      // Strategy 1: Get all text content and parse for bid numbers
+      const allText = document.body.textContent || '';
+      const bidMatches = allText.match(/\b(\d{1,3})\b/g) || [];
       
-      for (let i = 0; i < textNodes.snapshotLength; i++) {
-        const textNode = textNodes.snapshotItem(i);
-        if (textNode && textNode.textContent) {
-          const text = textNode.textContent.trim();
-          
-          // Check if it's a potential bid (just a number between 1-500)
-          const bidMatch = text.match(/^(\d{1,3})$/);
-          if (bidMatch) {
-            const bid = parseInt(bidMatch[1]);
-            if (bid >= 5 && bid <= 500) { // Realistic auction bid range
-              allBids.push(bid);
-              allComments.push(text);
-            }
-          }
-          
-          // Also check for currency format ($50, 50$, etc.)
-          const currencyMatch = text.match(/^\$?(\d{1,3})\$?$/);
-          if (currencyMatch) {
-            const bid = parseInt(currencyMatch[1]);
-            if (bid >= 5 && bid <= 500) {
-              allBids.push(bid);
-              allComments.push(text);
-            }
-          }
+      bidMatches.forEach(match => {
+        const bid = parseInt(match);
+        if (bid >= 5 && bid <= 500) { // Realistic auction bid range
+          allBids.push(bid);
+          allComments.push(match);
         }
-      }
+      });
 
-      // Strategy 2: Look in comment-like containers
+      // Strategy 2: Look for specific comment-like structures
       const commentSelectors = [
         '[data-testid*="comment"]',
         '[role="article"]',
         'div[dir="auto"]',
-        'span[dir="auto"]',
-        '.x1lliihq',
-        '.x193iq5w',
-        'div[data-ad-preview="message"]'
+        'span[dir="auto"]'
       ];
       
       commentSelectors.forEach(selector => {
-        const elements = document.querySelectorAll(selector);
-        elements.forEach(el => {
-          const text = el.textContent?.trim() || '';
-          
-          // Look for standalone numbers that could be bids
-          const bidMatches = text.match(/\b(\d{1,3})\b/g);
-          if (bidMatches) {
-            bidMatches.forEach(match => {
-              const bid = parseInt(match);
-              if (bid >= 5 && bid <= 500) {
-                allBids.push(bid);
-                allComments.push(text);
-              }
-            });
-          }
-        });
-      });
-
-      // Strategy 3: Look for recent timestamp indicators to find newest comments
-      const timeElements = document.querySelectorAll('*');
-      const recentComments: Element[] = [];
-      
-      timeElements.forEach(el => {
-        const text = el.textContent?.toLowerCase() || '';
-        if (text.includes('m') || text.includes('h') || text.includes('now') || 
-            text.includes('min') || text.includes('sec')) {
-          // Found a time indicator, look for nearby bid numbers
-          const parent = el.closest('div') || el.parentElement;
-          if (parent) {
-            recentComments.push(parent);
-          }
-        }
-      });
-
-      // Extract bids from recent comment areas
-      recentComments.forEach(container => {
-        const containerText = container.textContent || '';
-        const bidMatches = containerText.match(/\b(\d{1,3})\b/g);
-        if (bidMatches) {
-          bidMatches.forEach(match => {
-            const bid = parseInt(match);
-            if (bid >= 5 && bid <= 500) {
-              allBids.push(bid);
-              allComments.push(containerText.substring(0, 100));
+        try {
+          const elements = document.querySelectorAll(selector);
+          for (let i = 0; i < Math.min(elements.length, 100); i++) { // Limit to prevent overflow
+            const el = elements[i];
+            const text = el.textContent?.trim() || '';
+            
+            const bidMatches = text.match(/\b(\d{1,3})\b/g);
+            if (bidMatches) {
+              bidMatches.forEach(match => {
+                const bid = parseInt(match);
+                if (bid >= 5 && bid <= 500) {
+                  allBids.push(bid);
+                  allComments.push(text.substring(0, 50));
+                }
+              });
             }
-          });
+          }
+        } catch (e) {
+          // Skip problematic selectors
         }
       });
+
+      // Strategy 3: Look for time indicators to find recent comments
+      const timeIndicators = ['m', 'h', 'min', 'sec', 'now'];
+      const allElements = document.querySelectorAll('*');
+      
+      for (let i = 0; i < Math.min(allElements.length, 200); i++) { // Limit processing
+        const el = allElements[i];
+        const text = el.textContent?.toLowerCase() || '';
+        
+        if (timeIndicators.some(indicator => text.includes(indicator))) {
+          const parent = el.parentElement;
+          if (parent) {
+            const parentText = parent.textContent || '';
+            const bidMatches = parentText.match(/\b(\d{1,3})\b/g);
+            if (bidMatches) {
+              bidMatches.forEach(match => {
+                const bid = parseInt(match);
+                if (bid >= 5 && bid <= 500) {
+                  allBids.push(bid);
+                  allComments.push(parentText.substring(0, 50));
+                }
+              });
+            }
+          }
+        }
+      }
 
       return { bids: allBids, comments: allComments };
     });
@@ -227,19 +199,19 @@ export class FacebookScraper {
         }
       }
       
-      // Calculate results
-      const allBids = result.bids.filter(bid => bid > 0);
-      const currentBid = allBids.length > 0 ? Math.max(...allBids) : null;
-      const uniqueBidders = new Set(allBids).size;
+      // Calculate results safely
+      const allBids = result.bids.filter(bid => bid > 0 && bid <= 500);
+      const uniqueBids = [...new Set(allBids)].sort((a, b) => b - a); // Remove duplicates and sort descending
+      const currentBid = uniqueBids.length > 0 ? uniqueBids[0] : null;
       
       console.log(`🏆 HIGHEST BID DETECTED: $${currentBid || 'None'}`);
-      console.log(`👥 UNIQUE BIDDERS: ${uniqueBidders}`);
-      console.log(`📈 ALL BIDS: [${allBids.join(', ')}]`);
+      console.log(`👥 UNIQUE BIDS FOUND: [${uniqueBids.slice(0, 10).join(', ')}]`);
+      console.log(`📈 TOTAL BIDS: ${allBids.length}`);
       
       return {
         currentBid,
         bidCount: allBids.length,
-        comments: result.comments.slice(0, 10)
+        comments: result.comments.slice(0, 5) // Limit comments to prevent overflow
       };
       
     } catch (error) {
