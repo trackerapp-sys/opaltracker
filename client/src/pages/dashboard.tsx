@@ -33,8 +33,8 @@ export default function Dashboard() {
       <div className="p-6">
         <div className="animate-pulse space-y-6">
           <div className="h-8 bg-muted rounded w-48"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {[1, 2, 3, 4].map(i => (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {[1, 2].map(i => (
               <div key={i} className="bg-card rounded-lg border border-border p-6 h-32"></div>
             ))}
           </div>
@@ -63,7 +63,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <StatsCard
           title="Total Auctions"
           value={analytics?.totalAuctions || 0}
@@ -79,20 +79,6 @@ export default function Dashboard() {
           subtitle={`Ending in next 24h: ${Math.floor((analytics?.activeAuctions || 0) / 3)}`}
         />
 
-        <StatsCard
-          title="Won Auctions"
-          value={analytics?.wonAuctions || 0}
-          icon={<Trophy className="text-accent" />}
-          trend={`Win rate: ${Math.round(analytics?.winRate || 0)}%`}
-          trendColor="positive"
-        />
-
-        <StatsCard
-          title="Avg. Price"
-          value={formatCurrency(analytics?.avgPrice || 0)}
-          icon={<DollarSign className="text-secondary-foreground" />}
-          subtitle={analytics?.priceRange ? `Range: ${formatCurrency(analytics.priceRange.min)} - ${formatCurrency(analytics.priceRange.max)}` : "No data"}
-        />
       </div>
 
       {/* Recent Activity & Quick Actions */}
