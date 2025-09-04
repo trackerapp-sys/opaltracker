@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertAuctionSchema } from "@shared/schema";
 import { auctionMonitor } from "./monitor";
+import { facebookScraper } from "./facebook-scraper";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all auctions with optional filters
@@ -266,17 +267,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const currentBidNum = parseInt(auction.currentBid || auction.startingBid);
             
-            // Simulate bid detection (30% chance of new bid)
-            if (Math.random() < 0.4) {
-              const newBid = currentBidNum + Math.floor(Math.random() * 100) + 25;
-              const bidCount = Math.floor(Math.random() * 15) + 1;
+            // REAL FACEBOOK SCRAPING - Get actual bids from the Facebook post
+            console.log(`🔍 Scraping Facebook post for real bids: ${auction.postUrl}`);
+            const scrapedData = await facebookScraper.scrapeFacebookPost(auction.postUrl);
+            
+            if (scrapedData.currentBid && scrapedData.currentBid > currentBidNum) {
+              console.log(`💰 REAL BID DETECTED: $${scrapedData.currentBid} (was $${currentBidNum}) - ${scrapedData.bidCount} total bids`);
               
-              console.log(`💰 NEW BID DETECTED: $${newBid} (was $${currentBidNum}) - ${bidCount} total bids`);
-              
-              // Update the auction with new bid info
+              // Update the auction with REAL bid info from Facebook
               const updated = await storage.updateAuction(auction.id, {
-                currentBid: newBid.toString(),
-                bidCount: bidCount,
+                currentBid: scrapedData.currentBid.toString(),
+                bidCount: scrapedData.bidCount,
                 lastUpdated: new Date().toISOString()
               });
               
@@ -285,12 +286,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   id: auction.id,
                   opalType: auction.opalType,
                   previousBid: currentBidNum,
-                  newBid: newBid,
-                  bidCount: bidCount,
-                  url: auction.postUrl
+                  newBid: scrapedData.currentBid,
+                  bidCount: scrapedData.bidCount,
+                  url: auction.postUrl,
+                  scrapedComments: scrapedData.comments.slice(0, 3) // Show sample comments
                 });
-                console.log(`✅ Updated auction ${auction.id} with new bid: $${newBid}`);
+                console.log(`✅ Updated auction ${auction.id} with REAL Facebook bid: $${scrapedData.currentBid}`);
               }
+            } else if (scrapedData.currentBid) {
+              console.log(`📊 No new bids - current: $${scrapedData.currentBid}, tracked: $${currentBidNum}`);
+            } else {
+              console.log(`🔍 No bids found in Facebook post comments`);
             }
           } catch (error) {
             console.error(`❌ Error checking auction ${auction.id}:`, error);
