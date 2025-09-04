@@ -354,55 +354,6 @@ export default function AddAuction() {
               </div>
             </div>
 
-            {/* Additional Options Section */}
-            <div className="border-t border-border pt-6">
-              <h3 className="text-lg font-medium text-foreground mb-4">Additional Options</h3>
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="maxBid"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Maximum Bid</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <span className="absolute left-3 top-2 text-muted-foreground">$</span>
-                          <Input 
-                            type="number"
-                            step="0.01"
-                            placeholder="0.00"
-                            className="pl-8"
-                            {...field}
-                            data-testid="input-max-bid"
-                          />
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-
-                <FormField
-                  control={form.control}
-                  name="isWatchlist"
-                  render={({ field }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                          data-testid="checkbox-watchlist"
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>Add to watchlist</FormLabel>
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              </div>
-            </div>
 
             {/* Form Actions */}
             <div className="flex space-x-4 pt-6">
