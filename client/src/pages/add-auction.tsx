@@ -354,9 +354,9 @@ export default function AddAuction() {
               </div>
             </div>
 
-            {/* Personal Notes Section */}
+            {/* Additional Options Section */}
             <div className="border-t border-border pt-6">
-              <h3 className="text-lg font-medium text-foreground mb-4">Personal Notes</h3>
+              <h3 className="text-lg font-medium text-foreground mb-4">Additional Options</h3>
               <div className="space-y-4">
                 <FormField
                   control={form.control}
@@ -382,24 +382,6 @@ export default function AddAuction() {
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="notes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Notes</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          rows={3}
-                          placeholder="Personal notes about this auction..."
-                          {...field}
-                          data-testid="input-notes"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
