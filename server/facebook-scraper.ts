@@ -49,8 +49,22 @@ export class FacebookScraper {
       // Navigate to the Facebook post
       await page.goto(cleanUrl, { waitUntil: 'networkidle2', timeout: 30000 });
       
-      // Wait for content to load
+      // Wait for content to load and try to load more comments
       await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // Try to click "View more comments" or similar buttons to load all comments
+      try {
+        const moreCommentsButtons = await page.$$('div[role="button"]');
+        for (const button of moreCommentsButtons) {
+          const text = await page.evaluate(el => el.textContent, button);
+          if (text && (text.includes('more') || text.includes('View') || text.includes('comments'))) {
+            await button.click();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+      } catch (e) {
+        console.log("🔍 No additional comment loading needed");
+      }
       
       // Extract all comments from the page
       const comments = await page.evaluate(() => {
@@ -58,9 +72,15 @@ export class FacebookScraper {
         const commentSelectors = [
           '[data-testid="comment"]',
           '[role="article"]',
+          'div[role="button"]',
           '.x1iorvi4', // Common Facebook comment class
           '.x1n2onr6', // Another comment class
-          'div[dir="auto"]' // Generic text containers
+          'div[dir="auto"]', // Generic text containers
+          'span', // Simple text spans
+          'div', // All divs (broader search)
+          '[data-ad-preview="message"]',
+          '.comment', 
+          '.userContent'
         ];
         
         const allComments: string[] = [];
