@@ -90,18 +90,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Update auction
+  // Update auction - enhanced for Chrome extension bid updates
   app.patch("/api/auctions/:id", async (req, res) => {
     try {
+      console.log(`🔄 PATCH /api/auctions/${req.params.id} - Chrome extension update:`, req.body);
+      
       const partialData = insertAuctionSchema.partial().parse(req.body);
+      console.log("✅ Validated partial data:", partialData);
+      
       const auction = await storage.updateAuction(req.params.id, partialData);
       if (!auction) {
+        console.error(`❌ Auction ${req.params.id} not found`);
         return res.status(404).json({ message: "Auction not found" });
       }
+      
+      console.log(`✅ Updated auction ${req.params.id}:`, auction);
       res.json(auction);
     } catch (error) {
-      console.error("Error updating auction:", error);
+      console.error("❌ Error updating auction:", error);
       if (error instanceof Error && error.name === "ZodError") {
+        console.error("Zod validation error:", JSON.stringify(error, null, 2));
         return res.status(400).json({ message: "Invalid auction data", errors: error });
       }
       res.status(500).json({ message: "Failed to update auction" });
