@@ -56,6 +56,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk create auctions for live dealers
+  app.post("/api/auctions/bulk", async (req, res) => {
+    try {
+      const { auctions } = req.body;
+      if (!Array.isArray(auctions)) {
+        return res.status(400).json({ message: "Auctions must be an array" });
+      }
+
+      const createdAuctions = [];
+      const errors = [];
+
+      for (let i = 0; i < auctions.length; i++) {
+        try {
+          const validatedData = insertAuctionSchema.parse(auctions[i]);
+          const auction = await storage.createAuction(validatedData);
+          createdAuctions.push(auction);
+        } catch (error) {
+          console.error(`Error creating auction ${i}:`, error);
+          errors.push({ index: i, error: error instanceof Error ? error.message : "Unknown error" });
+        }
+      }
+
+      res.status(201).json({ 
+        created: createdAuctions.length,
+        total: auctions.length,
+        auctions: createdAuctions,
+        errors: errors
+      });
+    } catch (error) {
+      console.error("Error in bulk create:", error);
+      res.status(500).json({ message: "Failed to create auctions" });
+    }
+  });
+
   // Update auction
   app.patch("/api/auctions/:id", async (req, res) => {
     try {

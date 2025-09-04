@@ -12,6 +12,8 @@ import Export from "@/pages/export";
 import BulkUpdate from "@/pages/bulk-update";
 import Monitor from "@/pages/monitor";
 import LiveAuction from "@/pages/live-auction";
+import BulkImport from "@/pages/bulk-import";
+import AuctionTemplates from "@/pages/auction-templates";
 import Sidebar from "@/components/sidebar";
 
 function Router() {
@@ -28,6 +30,8 @@ function Router() {
           <Route path="/bulk-update" component={BulkUpdate} />
           <Route path="/monitor" component={Monitor} />
           <Route path="/live-auction" component={LiveAuction} />
+          <Route path="/bulk-import" component={BulkImport} />
+          <Route path="/templates" component={AuctionTemplates} />
           <Route component={NotFound} />
         </Switch>
       </main>
