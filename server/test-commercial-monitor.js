@@ -3,7 +3,7 @@
  * Tests both ScrapingBee and ZenRows with your auction
  */
 
-const axios = require('axios');
+import axios from 'axios';
 
 async function testCommercialMonitoring() {
   const testAuctionUrl = 'https://www.facebook.com/share/v/16d2fETDWj/';
