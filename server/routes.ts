@@ -202,6 +202,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Webhook endpoint for external bid notifications
+  app.post("/api/webhooks/bid-update", async (req, res) => {
+    try {
+      const { auctionUrl, bidAmount, bidderName, source } = req.body;
+      
+      console.log(`📞 Webhook received: $${bidAmount} from ${bidderName} via ${source}`);
+      
+      // Find auction by URL
+      const { auctions } = await storage.getAuctions({ status: 'active' });
+      const auction = auctions.find(a => a.postUrl === auctionUrl);
+      
+      if (auction) {
+        const currentBid = parseFloat(auction.currentBid || auction.startingBid);
+        const newBid = parseFloat(bidAmount);
+        
+        if (newBid > currentBid) {
+          await storage.updateAuction(auction.id, {
+            currentBid: bidAmount.toString(),
+            currentBidder: bidderName || 'Webhook User'
+          });
+          
+          console.log(`✅ Webhook updated: $${currentBid} → $${newBid}`);
+          res.json({ success: true, message: `Updated to $${newBid}` });
+        } else {
+          res.json({ success: false, message: `Bid $${newBid} not higher than current $${currentBid}` });
+        }
+      } else {
+        res.status(404).json({ success: false, message: 'Auction not found' });
+      }
+    } catch (error) {
+      console.error('❌ Webhook error:', error);
+      res.status(500).json({ success: false, message: 'Webhook failed' });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Server monitoring disabled - Chrome extension handles all detection
