@@ -33,16 +33,21 @@ export class FacebookScraper {
       await this.initialize();
     }
 
+    // Clean URL to prevent duplication issues
+    const cleanUrl = url.includes('/https://') 
+      ? url.substring(0, url.lastIndexOf('/https://'))
+      : url;
+
     const page = await this.browser.newPage();
     
     try {
-      console.log(`🔍 Scraping Facebook post: ${url}`);
+      console.log(`🔍 Scraping Facebook post: ${cleanUrl}`);
       
       // Set user agent to look like a real browser
       await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
       
       // Navigate to the Facebook post
-      await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+      await page.goto(cleanUrl, { waitUntil: 'networkidle2', timeout: 30000 });
       
       // Wait for content to load
       await new Promise(resolve => setTimeout(resolve, 3000));
