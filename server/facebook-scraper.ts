@@ -30,21 +30,46 @@ export class FacebookScraper {
     }
   }
 
-  // Strategy 1: Advanced DOM scraping with multiple selectors (stack-safe version)
+  // Strategy 1: Target ONLY comment-like bid patterns (not all numbers)
   private async extractBidsAdvanced(page: any): Promise<{ bids: number[], comments: string[] }> {
     return await page.evaluate(() => {
       const allBids: number[] = [];
       const allComments: string[] = [];
       
-      // Strategy 1: Get all text content and parse for bid numbers
-      const allText = document.body.textContent || '';
-      const bidMatches = allText.match(/\b(\d{1,3})\b/g) || [];
+      // Strategy 1: Look for standalone numbers that are likely bids (not in CSS/technical content)
+      // Focus on comment-like structures and user-generated content areas
+      const commentAreas = [
+        '[role="article"]',
+        '[data-testid*="comment"]', 
+        'div[dir="auto"]',
+        'span[dir="auto"]',
+        '.userContent',
+        '.comment'
+      ];
       
-      bidMatches.forEach(match => {
-        const bid = parseInt(match);
-        if (bid >= 5 && bid <= 500) { // Realistic auction bid range
-          allBids.push(bid);
-          allComments.push(match);
+      commentAreas.forEach(selector => {
+        try {
+          const elements = document.querySelectorAll(selector);
+          for (let i = 0; i < Math.min(elements.length, 50); i++) { // Limit to prevent overflow
+            const el = elements[i];
+            const text = el.textContent?.trim() || '';
+            
+            // Only look for standalone bid numbers (not embedded in long strings)
+            if (text.length < 100) { // Short comment-like text only
+              const bidMatches = text.match(/^\d{1,3}$/g) || text.match(/\b(\d{1,3})\b/g);
+              if (bidMatches && bidMatches.length <= 3) { // Avoid picking up technical data
+                bidMatches.forEach(match => {
+                  const bid = parseInt(match);
+                  if (bid >= 20 && bid <= 200) { // More realistic auction bid range
+                    allBids.push(bid);
+                    allComments.push(text.substring(0, 50));
+                  }
+                });
+              }
+            }
+          }
+        } catch (e) {
+          // Skip problematic selectors
         }
       });
 
@@ -182,21 +207,9 @@ export class FacebookScraper {
       
       console.log(`📊 Found ${result.bids.length} potential bid numbers: [${result.bids.join(', ')}]`);
       
+      // No fallback to avoid picking up CSS/technical numbers
       if (result.bids.length === 0) {
-        console.log(`🔍 No bids detected. Trying alternative strategy...`);
-        
-        // Alternative: Get all text content and parse manually
-        const allText = await page.evaluate(() => document.body.textContent || '');
-        const numbers = allText.match(/\b(\d{1,3})\b/g) || [];
-        const potentialBids = numbers
-          .map(n => parseInt(n))
-          .filter(n => n >= 5 && n <= 500)
-          .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
-        
-        if (potentialBids.length > 0) {
-          console.log(`🎯 Alternative detection found: [${potentialBids.join(', ')}]`);
-          result.bids.push(...potentialBids);
-        }
+        console.log(`🔍 No auction bids detected in comment areas`);
       }
       
       // Calculate results safely
