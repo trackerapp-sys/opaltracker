@@ -91,6 +91,8 @@ export class FacebookScraper {
       
       console.log(`💰 Extracted bids: [${bids.join(', ')}]`);
       console.log(`🏆 Highest bid: $${result.currentBid || 'No bids found'}`);
+      console.log(`📊 Total unique bidders: ${new Set(bids).size}`);
+      console.log(`📈 All bid amounts found: ${Array.from(new Set(bids)).sort((a, b) => b - a).join(', ')}`);
       
       return result;
       
@@ -112,7 +114,12 @@ export class FacebookScraper {
       /^bid\s*:?\s*\$?(\d+(?:\.\d{2})?)$/i, // "bid: $45" or "bid 45"
       /^(\d+(?:\.\d{2})?)\s*usd$/i,        // "45 USD"
       /^(\d+(?:\.\d{2})?)\s*aud$/i,        // "45 AUD"
-      /^I\s+bid\s+\$?(\d+(?:\.\d{2})?)$/i  // "I bid $45"
+      /^I\s+bid\s+\$?(\d+(?:\.\d{2})?)$/i, // "I bid $45"
+      /^\$?(\d+(?:\.\d{2})?)\s*please$/i,  // "$45 please"
+      /^(\d+(?:\.\d{2})?)\s*thanks?$/i,    // "45 thanks"
+      /^(\d+(?:\.\d{2})?)\s*!+$/,          // "45!!!"
+      /\$?(\d+(?:\.\d{2})?)\s*(?:for|on)\s+(?:this|it)/i, // "$45 for this"
+      /^(\d+(?:\.\d{2})?)\s*if\s+(?:still|available)/i    // "45 if still available"
     ];
     
     comments.forEach(comment => {
