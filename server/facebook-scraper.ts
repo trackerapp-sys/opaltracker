@@ -30,105 +30,37 @@ export class FacebookScraper {
     }
   }
 
-  // Strategy 1: Target ONLY comment-like bid patterns (not all numbers)
+  // FIXED: Only detect auction bid comments, ignore page elements
   private async extractBidsAdvanced(page: any): Promise<{ bids: number[], comments: string[] }> {
     return await page.evaluate(() => {
       const allBids: number[] = [];
       const allComments: string[] = [];
       
-      // Strategy 1: Look for standalone numbers that are likely bids (not in CSS/technical content)
-      // Focus on comment-like structures and user-generated content areas
-      const commentAreas = [
-        '[role="article"]',
-        '[data-testid*="comment"]', 
-        'div[dir="auto"]',
-        'span[dir="auto"]',
-        '.userContent',
-        '.comment'
-      ];
+      // ONLY look for standalone numbers that look like auction bids
+      // Focus on actual comment text, not page elements
+      const elements = document.querySelectorAll('div, span, p');
       
-      commentAreas.forEach(selector => {
-        try {
-          const elements = document.querySelectorAll(selector);
-          for (let i = 0; i < Math.min(elements.length, 50); i++) { // Limit to prevent overflow
-            const el = elements[i];
-            const text = el.textContent?.trim() || '';
-            
-            // Only look for standalone bid numbers (not embedded in long strings)
-            if (text.length < 100) { // Short comment-like text only
-              const bidMatches = text.match(/^\d{1,3}$/g) || text.match(/\b(\d{1,3})\b/g);
-              if (bidMatches && bidMatches.length <= 3) { // Avoid picking up technical data
-                bidMatches.forEach(match => {
-                  const bid = parseInt(match);
-                  if (bid >= 20 && bid <= 200) { // More realistic auction bid range
-                    allBids.push(bid);
-                    allComments.push(text.substring(0, 50));
-                  }
-                });
-              }
-            }
-          }
-        } catch (e) {
-          // Skip problematic selectors
-        }
-      });
-
-      // Strategy 2: Look for specific comment-like structures
-      const commentSelectors = [
-        '[data-testid*="comment"]',
-        '[role="article"]',
-        'div[dir="auto"]',
-        'span[dir="auto"]'
-      ];
-      
-      commentSelectors.forEach(selector => {
-        try {
-          const elements = document.querySelectorAll(selector);
-          for (let i = 0; i < Math.min(elements.length, 100); i++) { // Limit to prevent overflow
-            const el = elements[i];
-            const text = el.textContent?.trim() || '';
-            
-            const bidMatches = text.match(/\b(\d{1,3})\b/g);
-            if (bidMatches) {
-              bidMatches.forEach(match => {
-                const bid = parseInt(match);
-                if (bid >= 5 && bid <= 500) {
-                  allBids.push(bid);
-                  allComments.push(text.substring(0, 50));
-                }
-              });
-            }
-          }
-        } catch (e) {
-          // Skip problematic selectors
-        }
-      });
-
-      // Strategy 3: Look for time indicators to find recent comments
-      const timeIndicators = ['m', 'h', 'min', 'sec', 'now'];
-      const allElements = document.querySelectorAll('*');
-      
-      for (let i = 0; i < Math.min(allElements.length, 200); i++) { // Limit processing
-        const el = allElements[i];
-        const text = el.textContent?.toLowerCase() || '';
+      for (let i = 0; i < Math.min(elements.length, 100); i++) {
+        const el = elements[i];
+        const text = el.textContent?.trim() || '';
         
-        if (timeIndicators.some(indicator => text.includes(indicator))) {
-          const parent = el.parentElement;
-          if (parent) {
-            const parentText = parent.textContent || '';
-            const bidMatches = parentText.match(/\b(\d{1,3})\b/g);
-            if (bidMatches) {
-              bidMatches.forEach(match => {
-                const bid = parseInt(match);
-                if (bid >= 5 && bid <= 500) {
-                  allBids.push(bid);
-                  allComments.push(parentText.substring(0, 50));
-                }
-              });
+        // Only check very short text that could be bid comments
+        if (text.length >= 1 && text.length <= 10) {
+          // Look for JUST a number (potential bid)
+          const match = text.match(/^(\d{1,3})$/);
+          if (match) {
+            const bid = parseInt(match[1]);
+            // Only realistic auction bid range
+            if (bid >= 20 && bid <= 100) {
+              allBids.push(bid);
+              allComments.push(text);
             }
           }
         }
       }
+
+      // Remove all other strategies that cause false positives
+      // Only use the targeted approach above
 
       return { bids: allBids, comments: allComments };
     });
