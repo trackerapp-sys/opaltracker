@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { insertAuctionSchema } from "@shared/schema";
 import { auctionMonitor } from "./monitor";
 import { facebookScraper } from "./facebook-scraper";
+import { facebookWebhooks } from "./facebook-webhooks";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Get all auctions with optional filters
@@ -319,6 +320,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error in auto-monitoring:", error);
       res.status(500).json({ message: "Failed to check auction URLs" });
     }
+  });
+
+  // FACEBOOK WEBHOOKS - Real-time auction comment monitoring
+  app.get('/webhook/facebook', (req, res) => {
+    facebookWebhooks.verifyWebhook(req, res);
+  });
+
+  app.post('/webhook/facebook', (req, res) => {
+    facebookWebhooks.processWebhook(req, res);
   });
 
   // Webhook endpoint for external bid notifications
