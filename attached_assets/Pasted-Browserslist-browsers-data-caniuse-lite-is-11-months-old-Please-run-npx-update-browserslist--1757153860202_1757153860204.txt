@@ -1,0 +1,90 @@
+Browserslist: browsers data (caniuse-lite) is 11 months old. Please run:
+  npx update-browserslist-db@latest
+  Why you should do it regularly: https://github.com/browserslist/update-db#readme     
+8:15:26 PM [express] GET /api/auctions 200 in 2ms :: {"auctions":[],"total":0}
+Received auction data: {
+  opalType: 'Crystal Opal',
+  weight: '2',
+  description: '',
+  origin: '',
+  shape: '',
+  facebookGroup: 'fds',
+  postUrl: 'https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/',
+  startingBid: '20',
+  endTime: '2025-09-09T13:06',
+  status: 'active',
+  notes: '',
+  isWatchlist: false
+}
+Validated data: {
+  opalType: 'Crystal Opal',
+  weight: '2',
+  description: '',
+  origin: '',
+  shape: '',
+  facebookGroup: 'fds',
+  postUrl: 'https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/',
+  startingBid: '20',
+  endTime: 2025-09-09T03:06:00.000Z,
+  status: 'active',
+  notes: '',
+  isWatchlist: false
+}
+8:15:54 PM [express] POST /api/auctions 201 in 6ms :: {"opalType":"Crystal Opal","weight":"2","descr…
+8:15:56 PM [express] GET /api/auctions 200 in 0ms :: {"auctions":[{"opalType":"Crystal Opal","weight…
+🔍 Auto-checking 1 active Facebook auction URLs
+📊 Checking auction Crystal Opal (91f34217-602e-45c9-9e5c-52d7e5f4eb89): https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/
+🔍 Scraping Facebook post for real bids: https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/
+🔧 Initializing advanced Facebook scraper...
+✅ Advanced Facebook scraper initialized
+🎯 Advanced scraping: https://www.facebook.com/share/v/1GcYvCSw9Y
+📡 Navigating to Facebook post...
+🔄 Loading attempt 1/4...
+🔄 Loading attempt 2/4...
+🔄 Loading attempt 3/4...
+🔄 Loading attempt 4/4...
+🔍 Extracting bids with advanced detection...
+📊 Found 0 potential bid numbers: []
+🔍 No auction bids detected in comment areas
+🏆 HIGHEST BID DETECTED: $None
+👥 UNIQUE BIDS FOUND: []
+📈 TOTAL BIDS: 0
+🔍 No bids found in Facebook post comments
+8:16:15 PM [express] POST /api/monitor/check 200 in 17978ms :: {"message":"Automatically checked 1 F…
+8:16:15 PM [express] GET /api/auctions 304 in 3ms :: {"auctions":[{"opalType":"Crystal Opal","weight…
+🔍 Auto-checking 1 active Facebook auction URLs
+📊 Checking auction Crystal Opal (91f34217-602e-45c9-9e5c-52d7e5f4eb89): https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/
+🔍 Scraping Facebook post for real bids: https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/
+🎯 Advanced scraping: https://www.facebook.com/share/v/1GcYvCSw9Y
+📡 Navigating to Facebook post...
+🔄 Loading attempt 1/4...
+🔄 Loading attempt 2/4...
+🔄 Loading attempt 3/4...
+🔄 Loading attempt 4/4...
+🔍 Extracting bids with advanced detection...
+📊 Found 0 potential bid numbers: []
+🔍 No auction bids detected in comment areas
+🏆 HIGHEST BID DETECTED: $None
+👥 UNIQUE BIDS FOUND: []
+📈 TOTAL BIDS: 0
+🔍 No bids found in Facebook post comments
+8:16:35 PM [express] POST /api/monitor/check 200 in 17639ms :: {"message":"Automatically checked 1 F…
+8:16:35 PM [express] GET /api/auctions 304 in 2ms :: {"auctions":[{"opalType":"Crystal Opal","weight…
+🔍 Auto-checking 1 active Facebook auction URLs
+📊 Checking auction Crystal Opal (91f34217-602e-45c9-9e5c-52d7e5f4eb89): https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/
+🔍 Scraping Facebook post for real bids: https://www.facebook.com/share/v/1GcYvCSw9Y/https://www.facebook.com/share/v/1GcYvCSw9Y/
+🎯 Advanced scraping: https://www.facebook.com/share/v/1GcYvCSw9Y
+📡 Navigating to Facebook post...
+🔄 Loading attempt 1/4...
+🔄 Loading attempt 2/4...
+🔄 Loading attempt 3/4...
+🔄 Loading attempt 4/4...
+🔍 Extracting bids with advanced detection...
+📊 Found 0 potential bid numbers: []
+🔍 No auction bids detected in comment areas
+🏆 HIGHEST BID DETECTED: $None
+👥 UNIQUE BIDS FOUND: []
+📈 TOTAL BIDS: 0
+🔍 No bids found in Facebook post comments
+8:17:07 PM [express] POST /api/monitor/check 200 in 14971ms :: {"message":"Automatically checked 1 F…
+8:17:07 PM [express] GET /api/auctions 304 in 3ms :: {"auctions":[{"opalType":"Crystal Opal","weight…
