@@ -6,7 +6,7 @@ let trackerUrl = 'http://localhost:5000';
 
 // Load saved settings
 chrome.storage.sync.get(['isMonitoring', 'trackerUrl', 'stats'], (result) => {
-  isMonitoring = result.isMonitoring || false;
+  isMonitoring = true; // ALWAYS MONITORING - FULLY AUTOMATIC
   trackerUrl = result.trackerUrl || 'http://localhost:5000';
   
   updateUI();
@@ -28,19 +28,13 @@ function updateUI() {
   const statusText = document.getElementById('status-text');
   const toggleBtn = document.getElementById('toggle-monitoring');
   
-  if (isMonitoring) {
-    statusIndicator.className = 'status-indicator status-active';
-    statusIcon.textContent = '🟢';
-    statusText.textContent = 'Monitoring Active';
-    toggleBtn.textContent = 'Stop Monitoring';
-    toggleBtn.className = 'button button-success';
-  } else {
-    statusIndicator.className = 'status-indicator status-inactive';
-    statusIcon.textContent = '⭕';
-    statusText.textContent = 'Monitoring Inactive';
-    toggleBtn.textContent = 'Start Monitoring';
-    toggleBtn.className = 'button button-primary';
-  }
+  // ALWAYS ACTIVE - FULLY AUTOMATIC
+  statusIndicator.className = 'status-indicator status-active';
+  statusIcon.textContent = '🚀';
+  statusText.textContent = 'Fully Automatic - Always Active';
+  toggleBtn.textContent = 'Automatic Detection Enabled';
+  toggleBtn.className = 'button button-success';
+  toggleBtn.disabled = true; // No manual control needed
 }
 
 // Toggle monitoring

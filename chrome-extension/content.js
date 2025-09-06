@@ -1,9 +1,9 @@
 // Opal Auction Tracker - Facebook Bid Detection
 console.log('🔥 Opal Auction Tracker extension loaded!');
 
-let isMonitoring = false;
+let isMonitoring = true; // ALWAYS MONITORING - NO MANUAL ACTIVATION
 let currentAuctions = [];
-let trackerUrl = 'http://localhost:5000'; // Will be configurable
+let trackerUrl = 'http://localhost:5000';
 
 // Get tracker URL from storage
 chrome.storage.sync.get(['trackerUrl'], (result) => {
@@ -11,6 +11,12 @@ chrome.storage.sync.get(['trackerUrl'], (result) => {
     trackerUrl = result.trackerUrl;
   }
 });
+
+// AUTO-START: Immediately detect and monitor any Facebook auction on page load
+console.log('🚀 AUTO-DETECTION: Scanning for Facebook auctions...');
+setTimeout(() => {
+  autoDetectAndMonitor();
+}, 2000);
 
 // Enhanced bid detection patterns
 const bidPatterns = [
@@ -63,9 +69,76 @@ function extractPostId(url) {
   return match ? match[1] : url.split('/').pop();
 }
 
+// AUTO-DETECT: Automatically start monitoring Facebook auctions
+function autoDetectAndMonitor() {
+  const auctionInfo = detectAuctionInfo();
+  if (auctionInfo) {
+    console.log('🎯 AUCTION DETECTED! Auto-starting bid monitoring...');
+    console.log('📊 Auction details:', auctionInfo);
+    
+    // Automatically create auction in tracker
+    createAuctionInTracker(auctionInfo);
+    
+    // Start continuous monitoring
+    startContinuousMonitoring();
+  } else {
+    console.log('❌ No opal auction detected on this Facebook page');
+  }
+}
+
+// Create auction automatically in tracker
+async function createAuctionInTracker(auctionInfo) {
+  try {
+    const response = await fetch(`${trackerUrl}/api/auctions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        opalType: 'Auto-detected Opal',
+        weight: '0',
+        description: auctionInfo.content.substring(0, 100),
+        facebookGroup: 'Auto-detected Group',
+        postUrl: auctionInfo.url,
+        startingBid: '20',
+        endTime: new Date(Date.now() + 24*60*60*1000).toISOString(), // 24 hours from now
+        status: 'active'
+      })
+    });
+    
+    if (response.ok) {
+      console.log('✅ Auto-created auction in tracker');
+    }
+  } catch (error) {
+    console.error('❌ Failed to create auction:', error);
+  }
+}
+
+// Start continuous automatic monitoring
+function startContinuousMonitoring() {
+  console.log('🔄 Starting continuous automatic bid monitoring...');
+  
+  // Monitor every 5 seconds
+  setInterval(() => {
+    scanForBids();
+  }, 5000);
+  
+  // Also monitor on page changes
+  observePageChanges();
+}
+
+// Monitor page changes for new comments
+function observePageChanges() {
+  const observer = new MutationObserver(() => {
+    scanForBids();
+  });
+  
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true
+  });
+}
+
 // Scan for bids in comments
 function scanForBids() {
-  if (!isMonitoring) return;
   
   const comments = document.querySelectorAll([
     '[data-testid="UFI2Comment/body"]',
