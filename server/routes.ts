@@ -237,19 +237,88 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ message: "Server monitoring already disabled", status: { running: false } });
   });
 
-  // MONITORING ENDPOINT DISABLED - Prevents false $500 bid detections
+  // AUTO-MONITOR: Check Facebook URLs from auctions  
   app.post("/api/monitor/check", async (req, res) => {
-    console.log("🔄 Monitoring endpoint disabled to prevent false bid detections");
-    console.log("💡 Facebook scraper detects page noise (CSS, coordinates) as $500 bids");
-    console.log("✅ Use Chrome extension or manual updates for accurate bid tracking");
-    
-    res.json({ 
-      message: "Monitoring temporarily disabled to prevent false bid detections",
-      monitored: 0,
-      updates: [],
-      auctions: [],
-      reason: "Facebook scraper detects page elements as bids, causing incorrect $500 amounts"
-    });
+    try {
+      // Get all active auctions with Facebook URLs
+      const result = await storage.getAuctions({ status: "active" });
+      const activeAuctions = result.auctions.filter(auction => 
+        auction.postUrl && auction.postUrl.includes('facebook.com')
+      );
+      
+      if (activeAuctions.length === 0) {
+        return res.json({ 
+          message: "No active Facebook auctions to monitor",
+          monitored: 0,
+          updates: [],
+          auctions: []
+        });
+      }
+
+      console.log(`🔍 Auto-checking ${activeAuctions.length} active Facebook auction URLs`);
+      
+      const updates: any[] = [];
+      
+      // Check each auction URL for bid updates
+      for (const auction of activeAuctions) {
+        if (auction.postUrl && auction.postUrl.includes('facebook.com')) {
+          console.log(`📊 Checking auction ${auction.opalType} (${auction.id}): ${auction.postUrl}`);
+          
+          try {
+            const currentBidNum = parseInt(auction.currentBid || auction.startingBid);
+            
+            // REAL FACEBOOK SCRAPING - Get actual bids from the Facebook post
+            console.log(`🔍 Scraping Facebook post for real bids: ${auction.postUrl}`);
+            const scrapedData = await facebookScraper.scrapeFacebookPost(auction.postUrl);
+            
+            if (scrapedData.currentBid && scrapedData.currentBid > currentBidNum) {
+              console.log(`💰 REAL BID DETECTED: $${scrapedData.currentBid} (was $${currentBidNum}) - ${scrapedData.bidCount} total bids`);
+              
+              // Update the auction with REAL bid info from Facebook
+              const updated = await storage.updateAuction(auction.id, {
+                currentBid: scrapedData.currentBid.toString(),
+                bidCount: scrapedData.bidCount,
+                lastUpdated: new Date().toISOString()
+              });
+              
+              if (updated) {
+                updates.push({
+                  id: auction.id,
+                  opalType: auction.opalType,
+                  previousBid: currentBidNum,
+                  newBid: scrapedData.currentBid,
+                  bidCount: scrapedData.bidCount,
+                  url: auction.postUrl,
+                  scrapedComments: scrapedData.comments.slice(0, 3) // Show sample comments
+                });
+                console.log(`✅ Updated auction ${auction.id} with REAL Facebook bid: $${scrapedData.currentBid}`);
+              }
+            } else if (scrapedData.currentBid) {
+              console.log(`📊 No new bids - current: $${scrapedData.currentBid}, tracked: $${currentBidNum}`);
+            } else {
+              console.log(`🔍 No bids found in Facebook post comments`);
+            }
+          } catch (error) {
+            console.error(`❌ Error checking auction ${auction.id}:`, error);
+          }
+        }
+      }
+      
+      res.json({ 
+        message: `Automatically checked ${activeAuctions.length} Facebook auction URLs`,
+        monitored: activeAuctions.length,
+        updates: updates,
+        auctions: activeAuctions.map(a => ({ 
+          id: a.id, 
+          opalType: a.opalType,
+          url: a.postUrl, 
+          currentBid: a.currentBid || a.startingBid 
+        }))
+      });
+    } catch (error) {
+      console.error("Error in auto-monitoring:", error);
+      res.status(500).json({ message: "Failed to check auction URLs" });
+    }
   });
 
   // Webhook endpoint for external bid notifications
