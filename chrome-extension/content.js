@@ -111,6 +111,58 @@ function scanForBids() {
   }
 }
 
+// Auto-create auction from Facebook post
+async function createAuctionAutomatically(auctionInfo, highestBid, bidCount) {
+  try {
+    // Extract opal details from post content
+    const content = auctionInfo.content.toLowerCase();
+    
+    // Detect opal type
+    let opalType = 'Opal';
+    if (content.includes('boulder')) opalType = 'Boulder Opal';
+    else if (content.includes('crystal')) opalType = 'Crystal Opal';
+    else if (content.includes('black opal')) opalType = 'Black Opal';
+    else if (content.includes('white opal')) opalType = 'White Opal';
+    
+    // Extract weight if possible
+    const weightMatch = content.match(/(\d+(?:\.\d+)?)\s*(?:ct|carat|gram|g)/i);
+    const weight = weightMatch ? weightMatch[1] : '0';
+    
+    // Create auction automatically
+    const auctionData = {
+      opalType: opalType,
+      weight: weight,
+      description: `Auto-detected auction from Facebook post`,
+      origin: 'Unknown',
+      shape: 'free-form',
+      facebookGroup: 'Facebook Auction',
+      postUrl: auctionInfo.url,
+      startingBid: '20',
+      endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days from now
+      status: 'active',
+      currentBid: highestBid.toString()
+    };
+    
+    const response = await fetch(`${trackerUrl}/api/auctions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(auctionData)
+    });
+    
+    if (response.ok) {
+      const newAuction = await response.json();
+      console.log(`✅ Auto-created auction: ${newAuction.id} with bid $${highestBid}`);
+      showBidNotification(highestBid, bidCount, 'Auto-created & tracking!');
+    } else {
+      console.error('❌ Failed to auto-create auction:', await response.text());
+    }
+  } catch (error) {
+    console.error('❌ Error auto-creating auction:', error);
+  }
+}
+
 // Update the auction tracker app
 async function updateAuctionTracker(highestBid, bidCount) {
   const auctionInfo = detectAuctionInfo();
@@ -142,7 +194,9 @@ async function updateAuctionTracker(highestBid, bidCount) {
         console.error('❌ Failed to update auction:', await updateResponse.text());
       }
     } else {
-      console.log('📝 No matching auction found for this URL. Create one in the tracker first.');
+      // AUTO-CREATE auction if not found
+      console.log('📝 No matching auction found. Auto-creating auction...');
+      await createAuctionAutomatically(auctionInfo, highestBid, bidCount);
     }
   } catch (error) {
     console.error('❌ Error updating auction tracker:', error);
@@ -150,7 +204,7 @@ async function updateAuctionTracker(highestBid, bidCount) {
 }
 
 // Show visual notification of bid update
-function showBidNotification(bid, count) {
+function showBidNotification(bid, count, customMessage = null) {
   // Remove existing notification
   const existing = document.getElementById('opal-bid-notification');
   if (existing) existing.remove();
@@ -179,7 +233,9 @@ function showBidNotification(bid, count) {
       <span style="font-size: 16px;">💎</span>
       <div>
         <div style="font-weight: 600;">Highest Bid: $${bid}</div>
-        <div style="font-size: 12px; opacity: 0.9;">${count} total bids detected</div>
+        <div style="font-size: 12px; opacity: 0.9;">
+          ${customMessage || `${count} total bids detected`}
+        </div>
       </div>
     </div>
   `;
@@ -287,14 +343,14 @@ function startMonitoring() {
   // Initial scan
   scanForBids();
   
-  // Set up periodic scanning
+  // Set up aggressive periodic scanning for real-time detection
   const scanInterval = setInterval(() => {
     if (!isMonitoring) {
       clearInterval(scanInterval);
       return;
     }
     scanForBids();
-  }, 15000); // Scan every 15 seconds
+  }, 5000); // Scan every 5 seconds for real-time updates
   
   // Monitor for new comments being added
   const observer = new MutationObserver((mutations) => {
@@ -323,6 +379,12 @@ function initialize() {
   if (auctionInfo) {
     console.log('📍 Auction detected on this page:', auctionInfo);
     addControlPanel();
+    
+    // AUTO-START monitoring for full automation
+    console.log('🤖 AUTO-STARTING monitoring for fully automated bid detection');
+    isMonitoring = true;
+    updateControlPanel();
+    startMonitoring();
   } else {
     console.log('ℹ️ No auction detected on this page');
   }
