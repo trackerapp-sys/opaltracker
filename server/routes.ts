@@ -267,9 +267,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           try {
             const currentBidNum = parseInt(auction.currentBid || auction.startingBid);
             
-            // REAL FACEBOOK SCRAPING - Get actual bids from the Facebook post
-            console.log(`🔍 Scraping Facebook post for real bids: ${auction.postUrl}`);
-            const scrapedData = await facebookScraper.scrapeFacebookPost(auction.postUrl);
+            // DISABLED: Facebook scraping unreliable - use Chrome extension instead
+            console.log(`📱 Skipping Facebook scraping (use Chrome extension): ${auction.postUrl}`);
+            const scrapedData = { currentBid: null, bidCount: 0, bids: [] };
             
             if (scrapedData.currentBid && scrapedData.currentBid > currentBidNum) {
               console.log(`💰 REAL BID DETECTED: $${scrapedData.currentBid} (was $${currentBidNum}) - ${scrapedData.bidCount} total bids`);
