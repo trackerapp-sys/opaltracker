@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Eye, Edit, Plus } from "lucide-react";
 import AuctionTable from "@/components/auction-table";
+import { formatDate } from "@/lib/dateUtils";
+import { useOpalTypes } from "@/hooks/use-opal-types";
 
 interface Auction {
   id: string;
@@ -16,8 +19,9 @@ interface Auction {
   postUrl?: string;
   startingBid: string;
   currentBid?: string;
+  startTime: string;
   endTime: string;
-  status: "active" | "ended" | "won" | "lost";
+  status: "active" | "ended";
   updatedAt: string;
 }
 
@@ -32,15 +36,30 @@ export default function Auctions() {
   const [status, setStatus] = useState("all");
   const [priceRange, setPriceRange] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [activeTab, setActiveTab] = useState("active");
   const limit = 10;
 
+  // Get opal types from settings
+  const { data: opalTypesData } = useOpalTypes();
+
+  // Fetch user settings
+  const { data: settings } = useQuery<{ dateFormat: string; timezone: string }>({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("Failed to fetch settings");
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   const { data, isLoading } = useQuery<AuctionsResponse>({
-    queryKey: ["/api/auctions", search, opalType, status, priceRange, currentPage],
+    queryKey: ["/api/auctions", search, opalType, activeTab, priceRange, currentPage],
     queryFn: async () => {
       const params = new URLSearchParams();
       if (search) params.append('search', search);
       if (opalType && opalType !== 'all') params.append('opalType', opalType);
-      if (status && status !== 'all') params.append('status', status);
+      if (activeTab !== 'all') params.append('status', activeTab);
       if (priceRange && priceRange !== 'all') params.append('priceRange', priceRange);
       params.append('limit', limit.toString());
       params.append('offset', ((currentPage - 1) * limit).toString());
@@ -49,22 +68,39 @@ export default function Auctions() {
       if (!response.ok) throw new Error('Failed to fetch auctions');
       return response.json();
     },
+    refetchInterval: 5000, // Refresh every 5 seconds to show new bids
+    refetchOnWindowFocus: true, // Refresh when user returns to tab
   });
+
+  // Auto-switch to "ended" tab when an auction ends
+  useEffect(() => {
+    if (data?.auctions) {
+      // Check if we're on the active tab and there are no active auctions
+      if (activeTab === "active" && data.auctions.length === 0) {
+        // Check if there are any ended auctions by fetching all auctions
+        fetch("/api/auctions?status=ended&limit=1")
+          .then(response => response.json())
+          .then(result => {
+            if (result.auctions && result.auctions.length > 0) {
+              console.log("🔄 Auto-switching to Past Auctions tab - auction has ended");
+              setActiveTab("ended");
+            }
+          })
+          .catch(error => {
+            console.error("Error checking for ended auctions:", error);
+          });
+      }
+    }
+  }, [data?.auctions, activeTab]);
 
   const totalPages = Math.ceil((data?.total || 0) / limit);
 
-  const formatCurrency = (value: string) => `$${Math.round(parseFloat(value))}`;
-  const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  });
+  const formatDateDisplay = (dateString: string) => formatDate(new Date(dateString), settings);
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "won": return "bg-accent/10 text-accent";
-      case "active": return "bg-amber-500/10 text-amber-600";
+      case "active": return "bg-green-500/10 text-green-600";
       case "lost": return "bg-destructive/10 text-destructive";
       case "ended": return "bg-muted text-muted-foreground";
       default: return "bg-muted text-muted-foreground";
@@ -104,11 +140,9 @@ export default function Auctions() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="Black Opal">Black Opal</SelectItem>
-                <SelectItem value="Crystal Opal">Crystal Opal</SelectItem>
-                <SelectItem value="Boulder Opal">Boulder Opal</SelectItem>
-                <SelectItem value="White Opal">White Opal</SelectItem>
-                <SelectItem value="Fire Opal">Fire Opal</SelectItem>
+                {(opalTypesData?.opalTypes || []).map((type) => (
+                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -122,8 +156,6 @@ export default function Auctions() {
                 <SelectItem value="all">All Status</SelectItem>
                 <SelectItem value="active">Active</SelectItem>
                 <SelectItem value="ended">Ended</SelectItem>
-                <SelectItem value="won">Won</SelectItem>
-                <SelectItem value="lost">Lost</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -145,33 +177,20 @@ export default function Auctions() {
         </div>
       </div>
 
-      {/* Auction Table */}
-      {isLoading ? (
-        <div className="bg-card rounded-lg border border-border p-6">
-          <div className="animate-pulse space-y-4">
-            {[1, 2, 3, 4, 5].map(i => (
-              <div key={i} className="h-16 bg-muted rounded"></div>
-            ))}
-          </div>
-        </div>
-      ) : data?.auctions.length === 0 ? (
-        <div className="bg-card rounded-lg border border-border p-12 text-center">
-          <div className="text-muted-foreground">
-            <p className="text-lg mb-2">No auctions found</p>
-            <p className="text-sm mb-4">
-              {search || opalType || status || priceRange 
-                ? "Try adjusting your filters or search terms"
-                : "Get started by adding your first auction"
-              }
-            </p>
-            <Link href="/add-auction">
-              <Button>Add Your First Auction</Button>
-            </Link>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="bg-card rounded-lg border border-border p-4 mb-4">
+      {/* Tabs for Active and Completed Auctions */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="active" className="text-center">
+            Active Auctions
+          </TabsTrigger>
+          <TabsTrigger value="ended" className="text-center">
+            Completed Auctions
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="active" className="space-y-4">
+          {/* Active Auctions Stats */}
+          <div className="bg-card rounded-lg border border-border p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <div className="text-sm text-muted-foreground">
@@ -186,19 +205,81 @@ export default function Auctions() {
                   }).length || 0}</span> ending soon
                 </div>
               </div>
-              <div className="text-xs text-muted-foreground">
-                💡 Click the $ icon to quickly update bids, or the external link to open Facebook
+            </div>
+          </div>
+
+          {/* Active Auctions Table */}
+          {isLoading ? (
+            <div className="bg-card rounded-lg border border-border p-6">
+              <div className="animate-pulse space-y-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-16 bg-muted rounded"></div>
+                ))}
+              </div>
+            </div>
+          ) : data?.auctions.length === 0 ? (
+            <div className="bg-card rounded-lg border border-border p-12 text-center">
+              <div className="text-muted-foreground">
+                <p className="text-lg mb-2">No active auctions found</p>
+                <p className="text-sm mb-4">
+                  {search || opalType || priceRange 
+                    ? "Try adjusting your filters or search terms"
+                    : "Get started by adding your first auction"
+                  }
+                </p>
+                <Link href="/add-auction">
+                  <Button>Add Your First Auction</Button>
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <AuctionTable
+              auctions={data?.auctions || []}
+              formatDate={formatDateDisplay}
+              getStatusColor={getStatusColor}
+            />
+          )}
+        </TabsContent>
+
+        <TabsContent value="ended" className="space-y-4">
+          {/* Completed Auctions Stats */}
+          <div className="bg-card rounded-lg border border-border p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-4">
+                <div className="text-sm text-muted-foreground">
+                  <span className="font-medium text-foreground">{data?.auctions.filter(a => a.status === 'ended').length || 0}</span> completed auctions
+                </div>
               </div>
             </div>
           </div>
-          <AuctionTable
-            auctions={data?.auctions || []}
-            formatCurrency={formatCurrency}
-            formatDate={formatDate}
-            getStatusColor={getStatusColor}
-          />
-        </>
-      )}
+
+          {/* Completed Auctions Table */}
+          {isLoading ? (
+            <div className="bg-card rounded-lg border border-border p-6">
+              <div className="animate-pulse space-y-4">
+                {[1, 2, 3, 4, 5].map(i => (
+                  <div key={i} className="h-16 bg-muted rounded"></div>
+                ))}
+              </div>
+            </div>
+          ) : data?.auctions.length === 0 ? (
+            <div className="bg-card rounded-lg border border-border p-12 text-center">
+              <div className="text-muted-foreground">
+                <p className="text-lg mb-2">No completed auctions found</p>
+                <p className="text-sm mb-4">
+                  Completed auctions will appear here when they end
+                </p>
+              </div>
+            </div>
+          ) : (
+            <AuctionTable
+              auctions={data?.auctions || []}
+              formatDate={formatDateDisplay}
+              getStatusColor={getStatusColor}
+            />
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Pagination */}
       {data && data.total > limit && (

@@ -8,13 +8,17 @@ export class AutoMonitor {
   async start() {
     if (this.isRunning) return;
     
-    console.log("🔄 Auto-monitoring temporarily disabled to prevent bid override issues");
-    console.log("💡 Use Chrome extension or manual updates for reliable bid tracking");
-    this.isRunning = false;
+    console.log("🔄 Starting auto-monitoring system...");
+    console.log("💡 Monitoring Facebook auctions every 1 minute");
+    this.isRunning = true;
     
-    // Auto-monitoring disabled to prevent Facebook scraper false positives
-    // The scraper detects page elements (CSS values, coordinates) as bids
-    // Chrome extension provides more accurate real-time detection
+    // Start monitoring with 1-minute intervals
+    this.interval = setInterval(async () => {
+      await this.checkAllAuctions();
+    }, 1 * 60 * 1000); // 1 minute
+    
+    // Initial check
+    await this.checkAllAuctions();
   }
 
   async stop() {

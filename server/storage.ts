@@ -1,4 +1,4 @@
-import { type Auction, type InsertAuction } from "@shared/schema";
+import { type Auction, type InsertAuction, type LiveAuction, type InsertLiveAuction, type AuctionItem, type InsertAuctionItem } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -11,6 +11,7 @@ export interface IStorage {
     limit?: number;
     offset?: number;
   }): Promise<{ auctions: Auction[]; total: number }>;
+  getAuctionCount(): Promise<number>;
   createAuction(auction: InsertAuction): Promise<Auction>;
   updateAuction(id: string, auction: Partial<InsertAuction>): Promise<Auction | undefined>;
   deleteAuction(id: string): Promise<boolean>;
@@ -24,13 +25,57 @@ export interface IStorage {
     groupStats: Array<{ group: string; auctions: number; winRate: number; avgPrice: number }>;
     recentAuctions: Auction[];
   }>;
+  
+  // Live Auction methods
+  getAllLiveAuctions(): LiveAuction[];
+  getLiveAuction(id: string): LiveAuction | undefined;
+  createLiveAuction(liveAuction: InsertLiveAuction): LiveAuction;
+  updateLiveAuction(id: string, liveAuction: Partial<InsertLiveAuction>): LiveAuction | undefined;
+  deleteLiveAuction(id: string): boolean;
+  
+  // Auction Item methods
+  getAuctionItemsByLiveAuctionId(liveAuctionId: string): AuctionItem[];
+  getAuctionItem(id: string): AuctionItem | undefined;
+  createAuctionItem(item: InsertAuctionItem): AuctionItem;
+  updateAuctionItem(id: string, item: Partial<InsertAuctionItem>): AuctionItem | undefined;
+  deleteAuctionItem(id: string): boolean;
+  
+  // Settings methods
+  getSettings(): Promise<any>;
+  saveSettings(settings: any): Promise<any>;
+  resetSettings(): Promise<any>;
+  
+  // Payment Methods methods
+  getPaymentMethods(): Promise<Array<{ id: string; name: string; description?: string }>>;
+  addPaymentMethod(paymentMethod: { name: string; description?: string }): Promise<{ id: string; name: string; description?: string }>;
+  updatePaymentMethod(id: string, paymentMethod: { name: string; description?: string }): Promise<{ id: string; name: string; description?: string } | null>;
+  deletePaymentMethod(id: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private auctions: Map<string, Auction>;
+  private liveAuctions: Map<string, LiveAuction>;
+  private auctionItems: Map<string, AuctionItem>;
+  private settings: Map<string, any>;
+  private paymentMethods: Map<string, { id: string; name: string; description?: string }>;
+  private auctionIdCounter: number;
 
   constructor() {
     this.auctions = new Map();
+    this.liveAuctions = new Map();
+    this.auctionItems = new Map();
+    this.settings = new Map();
+    this.paymentMethods = new Map();
+    this.auctionIdCounter = 0;
+    
+    // Initialize default settings
+    this.settings.set('default', {
+      timezone: 'Australia/Sydney',
+      dateFormat: 'DD/MM/YYYY HH:MM',
+      currency: 'AUD',
+      notifications: true,
+      refreshRate: 5
+    });
   }
 
   async getAuction(id: string): Promise<Auction | undefined> {
@@ -54,7 +99,8 @@ export class MemStorage implements IStorage {
         auction.opalType.toLowerCase().includes(searchTerm) ||
         auction.description?.toLowerCase().includes(searchTerm) ||
         auction.facebookGroup.toLowerCase().includes(searchTerm) ||
-        auction.origin?.toLowerCase().includes(searchTerm)
+        auction.origin?.toLowerCase().includes(searchTerm) ||
+        auction.postUrl?.toLowerCase().includes(searchTerm)
       );
     }
 
@@ -90,8 +136,13 @@ export class MemStorage implements IStorage {
     return { auctions: paginatedAuctions, total };
   }
 
+  async getAuctionCount(): Promise<number> {
+    return this.auctions.size;
+  }
+
   async createAuction(insertAuction: InsertAuction): Promise<Auction> {
-    const id = randomUUID();
+    this.auctionIdCounter++;
+    const id = `AU${this.auctionIdCounter.toString().padStart(4, '0')}`;
     const now = new Date();
     const auction: Auction = {
       ...insertAuction,
@@ -102,7 +153,7 @@ export class MemStorage implements IStorage {
       origin: insertAuction.origin || null,
       shape: insertAuction.shape || null,
       postUrl: insertAuction.postUrl || null,
-      currentBid: insertAuction.currentBid || null,
+      currentBid: insertAuction.currentBid || "0",
       maxBid: insertAuction.maxBid || null,
       notes: insertAuction.notes || null,
       isWatchlist: insertAuction.isWatchlist || false,
@@ -185,6 +236,187 @@ export class MemStorage implements IStorage {
       groupStats,
       recentAuctions,
     };
+  }
+  
+  // Live Auction methods
+  getAllLiveAuctions(): LiveAuction[] {
+    return Array.from(this.liveAuctions.values());
+  }
+
+  getLiveAuction(id: string): LiveAuction | undefined {
+    return this.liveAuctions.get(id);
+  }
+
+  createLiveAuction(liveAuction: InsertLiveAuction): LiveAuction {
+    const id = randomUUID();
+    const now = new Date();
+    const newLiveAuction: LiveAuction = {
+      id,
+      ...liveAuction,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.liveAuctions.set(id, newLiveAuction);
+    return newLiveAuction;
+  }
+
+  updateLiveAuction(id: string, liveAuction: Partial<InsertLiveAuction>): LiveAuction | undefined {
+    const existing = this.liveAuctions.get(id);
+    if (!existing) return undefined;
+    
+    const updated: LiveAuction = {
+      ...existing,
+      ...liveAuction,
+      updatedAt: new Date(),
+    };
+    this.liveAuctions.set(id, updated);
+    return updated;
+  }
+
+  deleteLiveAuction(id: string): boolean {
+    return this.liveAuctions.delete(id);
+  }
+
+  // Auction Item methods
+  getAuctionItemsByLiveAuctionId(liveAuctionId: string): AuctionItem[] {
+    return Array.from(this.auctionItems.values()).filter(item => item.liveAuctionId === liveAuctionId);
+  }
+
+  getAuctionItem(id: string): AuctionItem | undefined {
+    return this.auctionItems.get(id);
+  }
+
+  createAuctionItem(item: InsertAuctionItem): AuctionItem {
+    const id = randomUUID();
+    const now = new Date();
+    const newItem: AuctionItem = {
+      id,
+      ...item,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.auctionItems.set(id, newItem);
+    return newItem;
+  }
+
+  updateAuctionItem(id: string, item: Partial<InsertAuctionItem>): AuctionItem | undefined {
+    const existing = this.auctionItems.get(id);
+    if (!existing) return undefined;
+    
+    const updated: AuctionItem = {
+      ...existing,
+      ...item,
+      updatedAt: new Date(),
+    };
+    this.auctionItems.set(id, updated);
+    return updated;
+  }
+
+  deleteAuctionItem(id: string): boolean {
+    return this.auctionItems.delete(id);
+  }
+
+  // Settings methods
+  async getSettings(): Promise<any> {
+    const settings = this.settings.get('default') || {
+      timezone: 'Australia/Sydney',
+      dateFormat: 'DD/MM/YYYY HH:MM',
+      currency: 'AUD',
+      notifications: true,
+      refreshRate: 5,
+      bidMonitoringEnabled: true,
+      bidCheckInterval: 3,
+      opalTypes: [
+        "Black Opal", "Crystal Opal", "Boulder Opal", "White Opal",
+        "Fire Opal", "Matrix Opal", "Rough Opal", "Doublet Opal",
+        "Triplet Opal", "Synthetic Opal", "Ethiopian Opal", "Mexican Opal",
+        "Peruvian Opal", "Other"
+      ]
+    };
+    
+    console.log('📋 Current settings:', JSON.stringify(settings, null, 2));
+    return settings;
+  }
+
+  async saveSettings(settings: any): Promise<any> {
+    console.log('💾 Saving settings:', JSON.stringify(settings, null, 2));
+    
+    // Always start with complete default settings to ensure nothing is missing
+    const defaultSettings = {
+      timezone: 'Australia/Sydney',
+      dateFormat: 'DD/MM/YYYY HH:MM',
+      currency: 'AUD',
+      notifications: true,
+      refreshRate: 5,
+      bidMonitoringEnabled: true,
+      bidCheckInterval: 3,
+      opalTypes: [
+        "Black Opal", "Crystal Opal", "Boulder Opal", "White Opal",
+        "Fire Opal", "Matrix Opal", "Rough Opal", "Doublet Opal",
+        "Triplet Opal", "Synthetic Opal", "Ethiopian Opal", "Mexican Opal",
+        "Peruvian Opal", "Other"
+      ]
+    };
+    
+    // Get existing settings and merge with defaults first, then with new settings
+    const existingSettings = this.settings.get('default') || {};
+    const settingsWithDefaults = { ...defaultSettings, ...existingSettings };
+    
+    console.log('🔄 Settings with defaults:', JSON.stringify(settingsWithDefaults, null, 2));
+    
+    // Merge with new settings
+    const mergedSettings = { ...settingsWithDefaults, ...settings };
+    console.log('✅ Final merged settings:', JSON.stringify(mergedSettings, null, 2));
+    
+    this.settings.set('default', mergedSettings);
+    return mergedSettings;
+  }
+
+  async resetSettings(): Promise<any> {
+    const defaultSettings = {
+      timezone: 'Australia/Sydney',
+      dateFormat: 'DD/MM/YYYY HH:MM',
+      currency: 'AUD',
+      notifications: true,
+      refreshRate: 5,
+      bidMonitoringEnabled: true,
+      bidCheckInterval: 3,
+      opalTypes: [
+        "Black Opal", "Crystal Opal", "Boulder Opal", "White Opal",
+        "Fire Opal", "Matrix Opal", "Rough Opal", "Doublet Opal",
+        "Triplet Opal", "Synthetic Opal", "Ethiopian Opal", "Mexican Opal",
+        "Peruvian Opal", "Other"
+      ]
+    };
+    
+    this.settings.set('default', defaultSettings);
+    console.log('🔄 Settings reset to defaults:', JSON.stringify(defaultSettings, null, 2));
+    return defaultSettings;
+  }
+
+  // Payment Methods methods
+  async getPaymentMethods(): Promise<Array<{ id: string; name: string; description?: string }>> {
+    return Array.from(this.paymentMethods.values());
+  }
+
+  async addPaymentMethod(paymentMethod: { name: string; description?: string }): Promise<{ id: string; name: string; description?: string }> {
+    const id = randomUUID();
+    const newPaymentMethod = { id, ...paymentMethod };
+    this.paymentMethods.set(id, newPaymentMethod);
+    return newPaymentMethod;
+  }
+
+  async updatePaymentMethod(id: string, paymentMethod: { name: string; description?: string }): Promise<{ id: string; name: string; description?: string } | null> {
+    if (!this.paymentMethods.has(id)) {
+      return null;
+    }
+    const updatedPaymentMethod = { id, ...paymentMethod };
+    this.paymentMethods.set(id, updatedPaymentMethod);
+    return updatedPaymentMethod;
+  }
+
+  async deletePaymentMethod(id: string): Promise<boolean> {
+    return this.paymentMethods.delete(id);
   }
 }
 

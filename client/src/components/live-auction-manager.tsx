@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatCurrency } from "@/lib/utils";
 import { Plus, Clock, Users, Trash2, Copy, Facebook } from "lucide-react";
 
 interface LiveSessionItem {
@@ -176,7 +177,7 @@ ${session.description ? `📝 ${session.description}\n` : ''}
 
 📋 ITEMS PREVIEW:
 ${session.items.map((item, index) => 
-  `${index + 1}. ${item.opalType} - ${item.weight}ct - Starting $${item.startingBid}`
+  `${index + 1}. ${item.opalType} - ${item.weight}ct - Reserve ${formatCurrency(item.startingBid)}`
 ).join('\n')}
 
 🔥 Get ready to bid! Session starts in comments below
@@ -321,7 +322,7 @@ ${session.items.map((item, index) =>
                   
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <Label>Starting Bid *</Label>
+                      <Label>Reserve Price *</Label>
                       <div className="relative">
                         <span className="absolute left-3 top-2 text-muted-foreground">$</span>
                         <Input
@@ -369,7 +370,7 @@ ${session.items.map((item, index) =>
                     <div>
                       <div className="font-medium">{item.opalType} - {item.weight}ct</div>
                       <div className="text-sm text-muted-foreground">
-                        Starting: ${item.startingBid} • Duration: {item.estimatedDuration}min
+                        Reserve: {formatCurrency(item.startingBid)} • Duration: {item.estimatedDuration}min
                       </div>
                       {item.description && (
                         <div className="text-sm text-muted-foreground">{item.description}</div>
@@ -397,14 +398,14 @@ ${session.items.map((item, index) =>
             <CardTitle>Session Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex space-x-4">
+            <div className="flex items-center space-x-2">
               <Button
                 onClick={copySessionPost}
                 variant="outline"
-                className="flex items-center space-x-2"
+                size="sm"
               >
-                <Copy className="h-4 w-4" />
-                <span>Copy Session Post</span>
+                <Copy className="w-4 h-4 mr-2" />
+                Copy Session Post
               </Button>
               
               <Button
@@ -414,21 +415,19 @@ ${session.items.map((item, index) =>
                   window.open(`https://www.facebook.com/groups/search/groups/?q=${encodeURIComponent(session.facebookGroup)}`, '_blank');
                 }}
                 variant="outline"
-                className="flex items-center space-x-2"
+                size="sm"
               >
-                <Facebook className="h-4 w-4" />
-                <span>Copy & Open Facebook</span>
+                <Facebook className="w-4 h-4 mr-2" />
+                Copy & Open Facebook
               </Button>
               
               <Button
                 onClick={() => createLiveSessionMutation.mutate(session)}
                 disabled={createLiveSessionMutation.isPending || session.items.length === 0}
-                className="flex items-center space-x-2"
+                size="sm"
               >
-                <Users className="h-4 w-4" />
-                <span>
-                  {createLiveSessionMutation.isPending ? "Creating..." : "Create Live Session"}
-                </span>
+                <Users className="w-4 h-4 mr-2" />
+                {createLiveSessionMutation.isPending ? "Creating..." : "Create Live Session"}
               </Button>
             </div>
           </CardContent>

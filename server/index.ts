@@ -10,7 +10,10 @@ app.use(cors({
   origin: [
     /^chrome-extension:\/\/.*/,
     "https://6890239f-4e7c-48b1-ae06-0f1b134d2f42-00-2z7sf66begnj7.janeway.replit.dev",
-    "http://localhost:5000"
+    "http://localhost:5000",
+    "http://localhost:5003",
+    "https://www.facebook.com",
+    /^https:\/\/www\.facebook\.com\/.*$/
   ],
   credentials: true
 }));

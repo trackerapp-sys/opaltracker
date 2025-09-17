@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { formatCurrency } from "@/lib/utils";
 import { Copy, Facebook, ExternalLink } from "lucide-react";
 
 interface FormData {
@@ -40,15 +41,17 @@ export default function FacebookPostGenerator({ formData, trigger }: FacebookPos
 
     const post = `🌟 OPAL AUCTION 🌟
 
-💎 ${data.opalType}
-⚖️ Weight: ${data.weight} carats
-${data.description ? `📝 ${data.description}\n` : ''}${data.origin ? `🌍 Origin: ${data.origin}\n` : ''}${data.shape ? `🔸 Shape: ${data.shape}\n` : ''}
-💰 Starting Bid: $${data.startingBid}
-⏰ Ends: ${formattedEndTime} (AEDT)
+**📋 ITEM DETAILS**
+💎 ${data.opalType} Lot
+${data.description ? `📝 **Description:** ${data.description}\n` : ''}⚖️ **Weight:** ${data.weight} Carats / ${data.weightGrams || '0'} Grams
+${data.origin ? `🌍 **Origin:** ${data.origin}\n` : ''}${data.shape ? `🔸 **Shape:** ${data.shape}\n` : ''}
 
-🏷️ Group: ${data.facebookGroup}
+**💰 AUCTION DETAILS**
+💰 **Reserve Price:** ${formatCurrency(data.startingBid)}
+${data.bidIncrements ? `📈 **Bid Increments:** ${formatCurrency(data.bidIncrements)}\n` : ''}${data.localShipping ? `🚚 **Local Shipping:** ${formatCurrency(data.localShipping)}\n` : ''}${data.internationalShipping ? `✈️ **International Shipping:** ${formatCurrency(data.internationalShipping)}\n` : ''}${data.location ? `📍 **Location:** ${data.location}\n` : ''}${data.paymentMethod && data.paymentMethod.length > 0 ? `💳 **Payment Methods:** ${data.paymentMethod.join(', ')}\n` : ''}⏰ **Ends:** ${formattedEndTime} (AEDT)
 
-📢 Bid in comments below!
+📢 Bid in comments below! 
+Thank You and Good Luck!
 #OpalAuction #AustralianOpals #Gems`;
 
     return post;

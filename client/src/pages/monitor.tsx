@@ -46,7 +46,7 @@ export default function Monitor() {
       queryClient.invalidateQueries({ queryKey: ["/api/monitor/status"] });
       toast({
         title: "Monitoring Started",
-        description: "Automatic bid monitoring is now active and will check every 3 minutes.",
+        description: "Automatic bid monitoring is now active and will check every 1 minute.",
       });
     },
     onError: () => {
@@ -237,7 +237,7 @@ export default function Monitor() {
                 Respectful Timing
               </h4>
               <p className="text-sm text-muted-foreground pl-8">
-                Checks every 3 minutes with delays between requests to be respectful to auction sites.
+                Checks every 1 minute with delays between requests to be respectful to auction sites.
               </p>
             </div>
           </div>

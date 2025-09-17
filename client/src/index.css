@@ -10,7 +10,7 @@
   --card-foreground: hsl(210, 12%, 16%);
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(210, 12%, 16%);
-  --primary: hsl(221, 83%, 53%);
+  --primary: hsl(25, 95%, 53%);
   --primary-foreground: hsl(0, 0%, 98%);
   --secondary: hsl(210, 16%, 82%);
   --secondary-foreground: hsl(215, 16%, 47%);
@@ -22,20 +22,20 @@
   --destructive-foreground: hsl(0, 0%, 98%);
   --border: hsl(214, 32%, 91%);
   --input: hsl(214, 32%, 91%);
-  --ring: hsl(221, 83%, 53%);
-  --chart-1: hsl(221, 83%, 53%);
+  --ring: hsl(25, 95%, 53%);
+  --chart-1: hsl(25, 95%, 53%);
   --chart-2: hsl(158, 64%, 52%);
   --chart-3: hsl(42, 92%, 56%);
   --chart-4: hsl(0, 85%, 60%);
   --chart-5: hsl(280, 87%, 65%);
   --sidebar: hsl(0, 0%, 100%);
   --sidebar-foreground: hsl(210, 12%, 16%);
-  --sidebar-primary: hsl(221, 83%, 53%);
+  --sidebar-primary: hsl(25, 95%, 53%);
   --sidebar-primary-foreground: hsl(0, 0%, 98%);
   --sidebar-accent: hsl(210, 16%, 93%);
   --sidebar-accent-foreground: hsl(215, 16%, 47%);
   --sidebar-border: hsl(214, 32%, 91%);
-  --sidebar-ring: hsl(221, 83%, 53%);
+  --sidebar-ring: hsl(25, 95%, 53%);
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
@@ -99,4 +99,46 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+}
+
+/* Custom Scrollbar Styles for Sidebar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: #475569 #0f172a; /* thumb track */
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #0f172a; /* slate-900 - matches sidebar background */
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #334155; /* slate-700 - darker than sidebar text */
+  border-radius: 4px;
+  border: 1px solid #1e293b; /* slate-800 border */
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #475569; /* slate-600 - lighter on hover */
+}
+
+.scrollbar-thin::-webkit-scrollbar-corner {
+  background: #0f172a; /* slate-900 */
+}
+
+/* Firefox scrollbar */
+.scrollbar-track-slate-800 {
+  scrollbar-color: #334155 #0f172a;
+}
+
+.scrollbar-thumb-slate-600 {
+  scrollbar-color: #334155 #0f172a;
+}
+
+.hover\:scrollbar-thumb-slate-500:hover {
+  scrollbar-color: #475569 #0f172a;
 }

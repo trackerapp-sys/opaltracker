@@ -1,0 +1,993 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opal Auction Tracker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                    chart: {
+                        "1": "var(--chart-1)",
+                        "2": "var(--chart-2)",
+                        "3": "var(--chart-3)",
+                        "4": "var(--chart-4)",
+                        "5": "var(--chart-5)",
+                    }
+                },
+                fontFamily: {
+                    sans: ["var(--font-sans)"],
+                },
+            },
+        }
+    };
+    </script>
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(210 12% 16%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(210 12% 16%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(210 12% 16%);
+            --primary: hsl(221 83% 53%);
+            --primary-foreground: hsl(0 0% 98%);
+            --secondary: hsl(210 16% 82%);
+            --secondary-foreground: hsl(215 16% 47%);
+            --muted: hsl(210 16% 93%);
+            --muted-foreground: hsl(215 16% 47%);
+            --accent: hsl(158 64% 52%);
+            --accent-foreground: hsl(0 0% 98%);
+            --destructive: hsl(0 85% 60%);
+            --destructive-foreground: hsl(0 0% 98%);
+            --border: hsl(214 32% 91%);
+            --input: hsl(214 32% 91%);
+            --ring: hsl(221 83% 53%);
+            --radius: 8px;
+            --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+        }
+
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: var(--font-sans);
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body class="bg-background text-foreground antialiased">
+    <div class="flex h-screen bg-background">
+        <!-- @COMPONENT: Sidebar Navigation -->
+        <!-- Sidebar -->
+        <nav class="w-64 bg-card border-r border-border flex flex-col">
+            <div class="p-6 border-b border-border">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-gem text-primary-foreground text-sm"></i>
+                    </div>
+                    <h1 class="text-lg font-semibold text-foreground">Opal Tracker</h1>
+                </div>
+            </div>
+            
+            <div class="flex-1 p-4">
+                <ul class="space-y-2">
+                    <li>
+                        <button data-tab="dashboard" class="tab-button w-full flex items-center space-x-3 px-3 py-2 rounded-md bg-primary text-primary-foreground">
+                            <i class="fas fa-chart-line w-5"></i>
+                            <span>Dashboard</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button data-tab="auctions" class="tab-button w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-list w-5"></i>
+                            <span>View Auctions</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button data-tab="add-auction" class="tab-button w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-plus w-5"></i>
+                            <span>Add Auction</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button data-tab="analytics" class="tab-button w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-chart-bar w-5"></i>
+                            <span>Analytics</span>
+                        </button>
+                    </li>
+                    <li>
+                        <button data-tab="export" class="tab-button w-full flex items-center space-x-3 px-3 py-2 rounded-md hover:bg-muted text-muted-foreground hover:text-foreground transition-colors">
+                            <i class="fas fa-download w-5"></i>
+                            <span>Export Data</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            
+            <div class="p-4 border-t border-border">
+                <div class="bg-muted rounded-lg p-3">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-muted-foreground">API Status</span>
+                        <span class="text-destructive font-medium">Offline</span>
+                    </div>
+                    <p class="text-xs text-muted-foreground mt-1">Facebook Groups API deprecated. Manual entry only.</p>
+                </div>
+            </div>
+        </nav>
+        <!-- @END_COMPONENT: Sidebar Navigation -->
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-auto">
+            <!-- @COMPONENT: Dashboard Tab -->
+            <div id="dashboard" class="tab-content">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-semibold text-foreground">Dashboard</h2>
+                        <div class="text-sm text-muted-foreground">
+                            Last updated: <span data-mock="true">2 minutes ago</span>
+                        </div>
+                    </div>
+
+                    <!-- Stats Cards -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-card rounded-lg border border-border p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-muted-foreground">Total Auctions</p>
+                                    <p class="text-2xl font-bold text-foreground" data-mock="true">127</p>
+                                </div>
+                                <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-gem text-primary"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-accent mt-2">
+                                <i class="fas fa-arrow-up"></i> 12% from last month
+                            </p>
+                        </div>
+
+                        <div class="bg-card rounded-lg border border-border p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-muted-foreground">Active Auctions</p>
+                                    <p class="text-2xl font-bold text-foreground" data-mock="true">23</p>
+                                </div>
+                                <div class="w-12 h-12 bg-amber-500/10 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-clock text-amber-500"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-2">
+                                Ending in next 24h: <span data-mock="true">8</span>
+                            </p>
+                        </div>
+
+                        <div class="bg-card rounded-lg border border-border p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-muted-foreground">Won Auctions</p>
+                                    <p class="text-2xl font-bold text-foreground" data-mock="true">34</p>
+                                </div>
+                                <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-trophy text-accent"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-accent mt-2">
+                                Win rate: <span data-mock="true">68%</span>
+                            </p>
+                        </div>
+
+                        <div class="bg-card rounded-lg border border-border p-6">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-muted-foreground">Avg. Price</p>
+                                    <p class="text-2xl font-bold text-foreground" data-mock="true">$342</p>
+                                </div>
+                                <div class="w-12 h-12 bg-secondary/10 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-dollar-sign text-secondary-foreground"></i>
+                                </div>
+                            </div>
+                            <p class="text-xs text-muted-foreground mt-2">
+                                Range: <span data-mock="true">$45 - $1,200</span>
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity & Quick Actions -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-card rounded-lg border border-border">
+                            <div class="p-6 border-b border-border">
+                                <h3 class="text-lg font-semibold text-foreground">Recent Auctions</h3>
+                            </div>
+                            <div class="p-6">
+                                <div class="space-y-4">
+                                    <!-- @MAP: recentAuctions.map(auction => ( -->
+                                    <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-mock="true">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                                <i class="fas fa-gem text-primary text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-foreground">Black Opal - 2.3ct</p>
+                                                <p class="text-sm text-muted-foreground">Lightning Ridge Group</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold text-foreground">$456</p>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                                Won
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-mock="true">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                                <i class="fas fa-gem text-primary text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-foreground">Boulder Opal - 5.1ct</p>
+                                                <p class="text-sm text-muted-foreground">Queensland Opal Hunters</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold text-foreground">$234</p>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600">
+                                                Active
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-mock="true">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                                                <i class="fas fa-gem text-primary text-sm"></i>
+                                            </div>
+                                            <div>
+                                                <p class="font-medium text-foreground">Crystal Opal - 1.8ct</p>
+                                                <p class="text-sm text-muted-foreground">Coober Pedy Markets</p>
+                                            </div>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold text-foreground">$189</p>
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                                Lost
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <!-- @END_MAP )) -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-card rounded-lg border border-border">
+                            <div class="p-6 border-b border-border">
+                                <h3 class="text-lg font-semibold text-foreground">Quick Actions</h3>
+                            </div>
+                            <div class="p-6 space-y-4">
+                                <button class="w-full flex items-center justify-center space-x-2 bg-primary text-primary-foreground py-3 px-4 rounded-lg hover:bg-primary/90 transition-colors">
+                                    <i class="fas fa-plus"></i>
+                                    <span>Add New Auction</span>
+                                </button>
+                                
+                                <button class="w-full flex items-center justify-center space-x-2 bg-secondary text-secondary-foreground py-3 px-4 rounded-lg hover:bg-secondary/80 transition-colors">
+                                    <i class="fas fa-search"></i>
+                                    <span>Search Auctions</span>
+                                </button>
+                                
+                                <button class="w-full flex items-center justify-center space-x-2 bg-accent text-accent-foreground py-3 px-4 rounded-lg hover:bg-accent/90 transition-colors">
+                                    <i class="fas fa-download"></i>
+                                    <span>Export Data</span>
+                                </button>
+
+                                <div class="pt-4 border-t border-border">
+                                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                        <div class="flex items-start space-x-3">
+                                            <i class="fas fa-exclamation-triangle text-amber-600 mt-1"></i>
+                                            <div>
+                                                <p class="text-sm font-medium text-amber-800">API Notice</p>
+                                                <p class="text-xs text-amber-700 mt-1">Facebook Groups API is no longer available. All auction data must be entered manually.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: Dashboard Tab -->
+
+            <!-- @COMPONENT: Auctions Tab -->
+            <div id="auctions" class="tab-content hidden">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-2xl font-semibold text-foreground">Auction Listings</h2>
+                        <button class="bg-primary text-primary-foreground px-4 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Auction
+                        </button>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="bg-card rounded-lg border border-border p-4 mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-muted-foreground mb-2">Search</label>
+                                <input type="text" placeholder="Search auctions..." class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-muted-foreground mb-2">Opal Type</label>
+                                <select class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground">
+                                    <option>All Types</option>
+                                    <option>Black Opal</option>
+                                    <option>Crystal Opal</option>
+                                    <option>Boulder Opal</option>
+                                    <option>White Opal</option>
+                                    <option>Fire Opal</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-muted-foreground mb-2">Status</label>
+                                <select class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground">
+                                    <option>All Status</option>
+                                    <option>Active</option>
+                                    <option>Ended</option>
+                                    <option>Won</option>
+                                    <option>Lost</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-muted-foreground mb-2">Price Range</label>
+                                <select class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground">
+                                    <option>All Prices</option>
+                                    <option>$0 - $100</option>
+                                    <option>$100 - $500</option>
+                                    <option>$500 - $1000</option>
+                                    <option>$1000+</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Auction Table -->
+                    <div class="bg-card rounded-lg border border-border overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-muted">
+                                    <tr>
+                                        <th class="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Opal Details</th>
+                                        <th class="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Group</th>
+                                        <th class="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Starting Bid</th>
+                                        <th class="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Current Bid</th>
+                                        <th class="text-left px-6 py-3 text-sm font-medium text-muted-foreground">End Time</th>
+                                        <th class="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Status</th>
+                                        <th class="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-border">
+                                    <!-- @MAP: auctions.map(auction => ( -->
+                                    <tr class="hover:bg-muted/50" data-mock="true">
+                                        <td class="px-6 py-4">
+                                            <div>
+                                                <p class="font-medium text-foreground">Black Opal - 3.2ct</p>
+                                                <p class="text-sm text-muted-foreground">Lightning Ridge origin</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-foreground">Lightning Ridge Group</td>
+                                        <td class="px-6 py-4 text-sm font-medium text-foreground">$200</td>
+                                        <td class="px-6 py-4 text-sm font-medium text-foreground">$450</td>
+                                        <td class="px-6 py-4 text-sm text-foreground">Dec 28, 8:00 PM</td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-500/10 text-amber-600">
+                                                Active
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex space-x-2">
+                                                <button class="text-primary hover:text-primary/80">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="text-muted-foreground hover:text-foreground">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="hover:bg-muted/50" data-mock="true">
+                                        <td class="px-6 py-4">
+                                            <div>
+                                                <p class="font-medium text-foreground">Crystal Opal - 1.8ct</p>
+                                                <p class="text-sm text-muted-foreground">Coober Pedy origin</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-foreground">Coober Pedy Markets</td>
+                                        <td class="px-6 py-4 text-sm font-medium text-foreground">$150</td>
+                                        <td class="px-6 py-4 text-sm font-medium text-foreground">$275</td>
+                                        <td class="px-6 py-4 text-sm text-foreground">Dec 27, 6:30 PM</td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-accent/10 text-accent">
+                                                Won
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex space-x-2">
+                                                <button class="text-primary hover:text-primary/80">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="text-muted-foreground hover:text-foreground">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <tr class="hover:bg-muted/50" data-mock="true">
+                                        <td class="px-6 py-4">
+                                            <div>
+                                                <p class="font-medium text-foreground">Boulder Opal - 4.7ct</p>
+                                                <p class="text-sm text-muted-foreground">Queensland origin</p>
+                                            </div>
+                                        </td>
+                                        <td class="px-6 py-4 text-sm text-foreground">Queensland Opal Hunters</td>
+                                        <td class="px-6 py-4 text-sm font-medium text-foreground">$300</td>
+                                        <td class="px-6 py-4 text-sm font-medium text-foreground">$720</td>
+                                        <td class="px-6 py-4 text-sm text-foreground">Dec 26, 9:15 PM</td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-destructive/10 text-destructive">
+                                                Lost
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4">
+                                            <div class="flex space-x-2">
+                                                <button class="text-primary hover:text-primary/80">
+                                                    <i class="fas fa-eye"></i>
+                                                </button>
+                                                <button class="text-muted-foreground hover:text-foreground">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    <!-- @END_MAP )) -->
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Pagination -->
+                        <div class="flex items-center justify-between px-6 py-3 border-t border-border">
+                            <div class="text-sm text-muted-foreground">
+                                Showing <span data-mock="true">1-10</span> of <span data-mock="true">127</span> auctions
+                            </div>
+                            <div class="flex space-x-2">
+                                <button class="px-3 py-1 text-sm border border-border rounded hover:bg-muted">Previous</button>
+                                <button class="px-3 py-1 text-sm bg-primary text-primary-foreground rounded">1</button>
+                                <button class="px-3 py-1 text-sm border border-border rounded hover:bg-muted">2</button>
+                                <button class="px-3 py-1 text-sm border border-border rounded hover:bg-muted">3</button>
+                                <button class="px-3 py-1 text-sm border border-border rounded hover:bg-muted">Next</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: Auctions Tab -->
+
+            <!-- @COMPONENT: Add Auction Tab -->
+            <div id="add-auction" class="tab-content hidden">
+                <div class="p-6">
+                    <div class="max-w-2xl mx-auto">
+                        <h2 class="text-2xl font-semibold text-foreground mb-6">Add New Auction</h2>
+                        
+                        <form class="bg-card rounded-lg border border-border p-6 space-y-6">
+                            <!-- Opal Details Section -->
+                            <div>
+                                <h3 class="text-lg font-medium text-foreground mb-4">Opal Details</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Opal Type *</label>
+                                        <select required class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                            <option value="">Select opal type</option>
+                                            <option>Black Opal</option>
+                                            <option>Crystal Opal</option>
+                                            <option>Boulder Opal</option>
+                                            <option>White Opal</option>
+                                            <option>Fire Opal</option>
+                                            <option>Matrix Opal</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Weight (carats) *</label>
+                                        <input type="number" step="0.1" required placeholder="e.g., 2.5" class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Description</label>
+                                        <textarea rows="3" placeholder="Describe the opal (color, pattern, origin, etc.)" class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring"></textarea>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Origin/Location</label>
+                                        <input type="text" placeholder="e.g., Lightning Ridge, Coober Pedy" class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Shape/Cut</label>
+                                        <input type="text" placeholder="e.g., Oval, Freeform, Cabochon" class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Auction Details Section -->
+                            <div class="border-t border-border pt-6">
+                                <h3 class="text-lg font-medium text-foreground mb-4">Auction Details</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Facebook Group *</label>
+                                        <input type="text" required placeholder="e.g., Lightning Ridge Opal Group" class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Auction Post URL</label>
+                                        <input type="url" placeholder="https://facebook.com/groups/..." class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Starting Bid *</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-2 text-muted-foreground">$</span>
+                                            <input type="number" step="0.01" required placeholder="0.00" class="w-full pl-8 pr-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Current Bid</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-2 text-muted-foreground">$</span>
+                                            <input type="number" step="0.01" placeholder="0.00" class="w-full pl-8 pr-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">End Date & Time *</label>
+                                        <input type="datetime-local" required class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Status</label>
+                                        <select class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                            <option>Active</option>
+                                            <option>Ended</option>
+                                            <option>Won</option>
+                                            <option>Lost</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Personal Notes Section -->
+                            <div class="border-t border-border pt-6">
+                                <h3 class="text-lg font-medium text-foreground mb-4">Personal Notes</h3>
+                                <div class="space-y-4">
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Maximum Bid</label>
+                                        <div class="relative">
+                                            <span class="absolute left-3 top-2 text-muted-foreground">$</span>
+                                            <input type="number" step="0.01" placeholder="0.00" class="w-full pl-8 pr-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-medium text-muted-foreground mb-2">Notes</label>
+                                        <textarea rows="3" placeholder="Personal notes about this auction..." class="w-full px-3 py-2 border border-input rounded-md bg-background text-foreground focus:ring-2 focus:ring-ring"></textarea>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        <input type="checkbox" id="watchlist" class="rounded border-border">
+                                        <label for="watchlist" class="text-sm text-foreground">Add to watchlist</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Form Actions -->
+                            <div class="flex space-x-4 pt-6">
+                                <button type="submit" class="flex-1 bg-primary text-primary-foreground py-3 px-4 rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                                    Save Auction
+                                </button>
+                                <button type="button" class="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: Add Auction Tab -->
+
+            <!-- @COMPONENT: Analytics Tab -->
+            <div id="analytics" class="tab-content hidden">
+                <div class="p-6">
+                    <h2 class="text-2xl font-semibold text-foreground mb-6">Analytics & Insights</h2>
+                    
+                    <!-- Price Trends Chart -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-card rounded-lg border border-border p-6">
+                            <h3 class="text-lg font-semibold text-foreground mb-4">Price Trends (Last 6 Months)</h3>
+                            <div class="h-64 bg-muted/30 rounded-lg flex items-center justify-center">
+                                <div class="text-center">
+                                    <i class="fas fa-chart-line text-4xl text-muted-foreground mb-2"></i>
+                                    <p class="text-muted-foreground">Price trend chart will be displayed here</p>
+                                    <p class="text-sm text-muted-foreground mt-1"><!-- @FUNCTIONALITY: Implement chart using Chart.js or similar --></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-card rounded-lg border border-border p-6">
+                            <h3 class="text-lg font-semibold text-foreground mb-4">Win Rate by Opal Type</h3>
+                            <div class="h-64 bg-muted/30 rounded-lg flex items-center justify-center">
+                                <div class="text-center">
+                                    <i class="fas fa-chart-pie text-4xl text-muted-foreground mb-2"></i>
+                                    <p class="text-muted-foreground">Win rate pie chart will be displayed here</p>
+                                    <p class="text-sm text-muted-foreground mt-1"><!-- @FUNCTIONALITY: Implement pie chart visualization --></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Analytics -->
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div class="lg:col-span-2 bg-card rounded-lg border border-border">
+                            <div class="p-6 border-b border-border">
+                                <h3 class="text-lg font-semibold text-foreground">Performance by Group</h3>
+                            </div>
+                            <div class="p-6">
+                                <div class="space-y-4">
+                                    <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-mock="true">
+                                        <div>
+                                            <p class="font-medium text-foreground">Lightning Ridge Group</p>
+                                            <p class="text-sm text-muted-foreground">23 auctions participated</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold text-foreground">72% Win Rate</p>
+                                            <p class="text-sm text-muted-foreground">Avg: $385</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-mock="true">
+                                        <div>
+                                            <p class="font-medium text-foreground">Queensland Opal Hunters</p>
+                                            <p class="text-sm text-muted-foreground">18 auctions participated</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold text-foreground">61% Win Rate</p>
+                                            <p class="text-sm text-muted-foreground">Avg: $422</p>
+                                        </div>
+                                    </div>
+
+                                    <div class="flex items-center justify-between p-4 bg-muted/50 rounded-lg" data-mock="true">
+                                        <div>
+                                            <p class="font-medium text-foreground">Coober Pedy Markets</p>
+                                            <p class="text-sm text-muted-foreground">15 auctions participated</p>
+                                        </div>
+                                        <div class="text-right">
+                                            <p class="font-semibold text-foreground">53% Win Rate</p>
+                                            <p class="text-sm text-muted-foreground">Avg: $298</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-card rounded-lg border border-border">
+                            <div class="p-6 border-b border-border">
+                                <h3 class="text-lg font-semibold text-foreground">Key Metrics</h3>
+                            </div>
+                            <div class="p-6 space-y-6">
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm text-muted-foreground">Total Spent</span>
+                                        <span class="font-semibold text-foreground" data-mock="true">$11,634</span>
+                                    </div>
+                                    <div class="w-full bg-muted rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 78%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm text-muted-foreground">Average Bid</span>
+                                        <span class="font-semibold text-foreground" data-mock="true">$342</span>
+                                    </div>
+                                    <div class="w-full bg-muted rounded-full h-2">
+                                        <div class="bg-accent h-2 rounded-full" style="width: 65%"></div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="flex items-center justify-between mb-2">
+                                        <span class="text-sm text-muted-foreground">Success Rate</span>
+                                        <span class="font-semibold text-foreground" data-mock="true">68%</span>
+                                    </div>
+                                    <div class="w-full bg-muted rounded-full h-2">
+                                        <div class="bg-amber-500 h-2 rounded-full" style="width: 68%"></div>
+                                    </div>
+                                </div>
+
+                                <div class="pt-4 border-t border-border">
+                                    <div class="text-center">
+                                        <p class="text-2xl font-bold text-foreground" data-mock="true">34</p>
+                                        <p class="text-sm text-muted-foreground">Opals Won</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: Analytics Tab -->
+
+            <!-- @COMPONENT: Export Tab -->
+            <div id="export" class="tab-content hidden">
+                <div class="p-6">
+                    <div class="max-w-2xl mx-auto">
+                        <h2 class="text-2xl font-semibold text-foreground mb-6">Export Data</h2>
+                        
+                        <div class="bg-card rounded-lg border border-border p-6 space-y-6">
+                            <div>
+                                <h3 class="text-lg font-medium text-foreground mb-4">Export Options</h3>
+                                <div class="space-y-4">
+                                    <div class="border border-border rounded-lg p-4">
+                                        <div class="flex items-center space-x-3">
+                                            <input type="radio" name="export-type" id="all-data" class="text-primary" checked>
+                                            <label for="all-data" class="text-foreground font-medium">All Auction Data</label>
+                                        </div>
+                                        <p class="text-sm text-muted-foreground mt-2 ml-6">Export all auctions including completed and active ones</p>
+                                    </div>
+
+                                    <div class="border border-border rounded-lg p-4">
+                                        <div class="flex items-center space-x-3">
+                                            <input type="radio" name="export-type" id="won-auctions" class="text-primary">
+                                            <label for="won-auctions" class="text-foreground font-medium">Won Auctions Only</label>
+                                        </div>
+                                        <p class="text-sm text-muted-foreground mt-2 ml-6">Export only auctions you've successfully won</p>
+                                    </div>
+
+                                    <div class="border border-border rounded-lg p-4">
+                                        <div class="flex items-center space-x-3">
+                                            <input type="radio" name="export-type" id="date-range" class="text-primary">
+                                            <label for="date-range" class="text-foreground font-medium">Date Range</label>
+                                        </div>
+                                        <p class="text-sm text-muted-foreground mt-2 ml-6">Export auctions within a specific date range</p>
+                                        <div class="grid grid-cols-2 gap-4 mt-3 ml-6">
+                                            <input type="date" class="px-3 py-2 border border-input rounded-md bg-background text-foreground">
+                                            <input type="date" class="px-3 py-2 border border-input rounded-md bg-background text-foreground">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-medium text-foreground mb-4">File Format</h3>
+                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div class="border border-border rounded-lg p-4 text-center hover:bg-muted/50 cursor-pointer">
+                                        <i class="fas fa-file-csv text-2xl text-accent mb-2"></i>
+                                        <p class="font-medium text-foreground">CSV</p>
+                                        <p class="text-xs text-muted-foreground">Spreadsheet compatible</p>
+                                    </div>
+                                    <div class="border border-border rounded-lg p-4 text-center hover:bg-muted/50 cursor-pointer">
+                                        <i class="fas fa-file-excel text-2xl text-primary mb-2"></i>
+                                        <p class="font-medium text-foreground">Excel</p>
+                                        <p class="text-xs text-muted-foreground">Microsoft Excel format</p>
+                                    </div>
+                                    <div class="border border-border rounded-lg p-4 text-center hover:bg-muted/50 cursor-pointer">
+                                        <i class="fas fa-file-code text-2xl text-amber-500 mb-2"></i>
+                                        <p class="font-medium text-foreground">JSON</p>
+                                        <p class="text-xs text-muted-foreground">Developer friendly</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <h3 class="text-lg font-medium text-foreground mb-4">Include Fields</h3>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <div class="space-y-2">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" checked class="rounded border-border">
+                                            <span class="text-sm text-foreground">Opal Type & Weight</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" checked class="rounded border-border">
+                                            <span class="text-sm text-foreground">Auction Prices</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" checked class="rounded border-border">
+                                            <span class="text-sm text-foreground">Group Information</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" checked class="rounded border-border">
+                                            <span class="text-sm text-foreground">Auction Status</span>
+                                        </label>
+                                    </div>
+                                    <div class="space-y-2">
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" checked class="rounded border-border">
+                                            <span class="text-sm text-foreground">Dates & Times</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" class="rounded border-border">
+                                            <span class="text-sm text-foreground">Personal Notes</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" class="rounded border-border">
+                                            <span class="text-sm text-foreground">URLs & Links</span>
+                                        </label>
+                                        <label class="flex items-center space-x-2">
+                                            <input type="checkbox" class="rounded border-border">
+                                            <span class="text-sm text-foreground">Origin/Location</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex space-x-4 pt-6">
+                                <button class="flex-1 bg-primary text-primary-foreground py-3 px-4 rounded-lg hover:bg-primary/90 transition-colors font-medium">
+                                    <i class="fas fa-download mr-2"></i>
+                                    Export Data
+                                </button>
+                                <button class="px-6 py-3 border border-border rounded-lg hover:bg-muted transition-colors">
+                                    Preview
+                                </button>
+                            </div>
+
+                            <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                <div class="flex items-start space-x-3">
+                                    <i class="fas fa-info-circle text-amber-600 mt-1"></i>
+                                    <div>
+                                        <p class="text-sm font-medium text-amber-800">Export Information</p>
+                                        <p class="text-xs text-amber-700 mt-1">Your data will be exported based on the current selections. The export includes all manually entered auction data from your local database.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- @END_COMPONENT: Export Tab -->
+        </main>
+    </div>
+
+    <script>
+        (function() {
+            // Tab switching functionality
+            const tabButtons = document.querySelectorAll('.tab-button');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            function switchTab(targetTab) {
+                // Remove active state from all buttons
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('bg-primary', 'text-primary-foreground');
+                    btn.classList.add('hover:bg-muted', 'text-muted-foreground', 'hover:text-foreground');
+                });
+
+                // Hide all tab contents
+                tabContents.forEach(content => {
+                    content.classList.add('hidden');
+                });
+
+                // Show target tab content
+                const targetContent = document.getElementById(targetTab);
+                if (targetContent) {
+                    targetContent.classList.remove('hidden');
+                }
+
+                // Update active button
+                const activeButton = document.querySelector(`[data-tab="${targetTab}"]`);
+                if (activeButton) {
+                    activeButton.classList.add('bg-primary', 'text-primary-foreground');
+                    activeButton.classList.remove('hover:bg-muted', 'text-muted-foreground', 'hover:text-foreground');
+                }
+            }
+
+            // Add click event listeners to tab buttons
+            tabButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const targetTab = e.currentTarget.getAttribute('data-tab');
+                    switchTab(targetTab);
+                });
+            });
+
+            // Quick action button functionality
+            const quickActionButtons = document.querySelectorAll('.quick-actions button');
+            quickActionButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const buttonText = e.currentTarget.textContent.trim();
+                    if (buttonText.includes('Add New Auction')) {
+                        switchTab('add-auction');
+                    } else if (buttonText.includes('Search Auctions')) {
+                        switchTab('auctions');
+                    } else if (buttonText.includes('Export Data')) {
+                        switchTab('export');
+                    }
+                });
+            });
+
+            // Form validation for add auction form
+            const addAuctionForm = document.querySelector('#add-auction form');
+            if (addAuctionForm) {
+                addAuctionForm.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    
+                    // Basic form validation
+                    const requiredFields = addAuctionForm.querySelectorAll('[required]');
+                    let isValid = true;
+                    
+                    requiredFields.forEach(field => {
+                        if (!field.value.trim()) {
+                            isValid = false;
+                            field.classList.add('border-destructive');
+                        } else {
+                            field.classList.remove('border-destructive');
+                        }
+                    });
+                    
+                    if (isValid) {
+                        // TODO: Implement form submission logic
+                        alert('Auction data saved successfully! (This is a mockup - implement actual save functionality)');
+                        addAuctionForm.reset();
+                        switchTab('dashboard');
+                    } else {
+                        alert('Please fill in all required fields.');
+                    }
+                });
+            }
+
+            // Filter functionality for auctions table
+            const filterInputs = document.querySelectorAll('#auctions input, #auctions select');
+            filterInputs.forEach(input => {
+                input.addEventListener('input', () => {
+                    // TODO: Implement filtering logic for auction table
+                    console.log('Filter applied:', input.value);
+                });
+            });
+
+            // Export functionality
+            const exportButton = document.querySelector('#export button[type="button"]');
+            if (exportButton && exportButton.textContent.includes('Export Data')) {
+                exportButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    // TODO: Implement actual export functionality
+                    alert('Export functionality would be implemented here. This would generate and download the selected data format.');
+                });
+            }
+        })();
+    </script>
+</body>
+</html>

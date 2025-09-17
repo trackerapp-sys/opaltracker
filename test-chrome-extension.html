@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Chrome Extension - Facebook Auction Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .comment { border: 1px solid #ccc; margin: 10px 0; padding: 10px; }
+        .bid-notification { 
+            position: fixed; 
+            top: 20px; 
+            right: 20px; 
+            background: #4CAF50; 
+            color: white; 
+            padding: 15px; 
+            border-radius: 5px; 
+            z-index: 10000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Test Chrome Extension - Facebook Auction Page</h1>
+    <p>This page simulates a Facebook auction page to test the Chrome extension.</p>
+    
+    <div role="article" data-testid="post_message">
+        <h2>Boulder Opal Auction</h2>
+        <p>Beautiful boulder opal, 2 carats, starting bid $20. Auction ends in 24 hours.</p>
+        <p>Keywords: opal, boulder, carat, auction, bid, bidding</p>
+    </div>
+    
+    <div role="article" class="comment">
+        <strong>Yvette Walker</strong> 25 2d Reply Share
+    </div>
+    
+    <div role="article" class="comment">
+        <strong>Tory Millowick</strong> 30 1d Reply Share
+    </div>
+    
+    <div role="article" class="comment">
+        <strong>Kimber Alexander</strong> 35 1h Reply Share
+    </div>
+    
+    <div role="article" class="comment">
+        <strong>Julia Lee</strong> 40 30m Reply Share
+    </div>
+    
+    <div role="article" class="comment">
+        <strong>Sarah Johnson</strong> 45 15m Reply Share
+    </div>
+    
+    <div role="article" class="comment">
+        <strong>Mike Chen</strong> 50 5m Reply Share
+    </div>
+    
+    <script>
+        // Simulate Facebook page structure
+        console.log('Test page loaded');
+        
+        // Check if Chrome extension is running
+        setTimeout(() => {
+            if (window.location.href.includes('facebook.com')) {
+                console.log('✅ Chrome extension should be active on Facebook page');
+            } else {
+                console.log('❌ This is not a Facebook page - extension may not be active');
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

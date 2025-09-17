@@ -31,8 +31,8 @@ export class AuctionMonitor {
     this.cronJob.start();
     this.isRunning = true;
 
-    // Comment monitor disabled - Chrome extension handles detection
-    // commentMonitor.init().catch(console.error);
+    // Comment monitor enabled for Facebook auction monitoring
+    commentMonitor.init().catch(console.error);
   }
 
   stop() {
@@ -48,8 +48,6 @@ export class AuctionMonitor {
   }
 
   async checkAllAuctions(): Promise<BidUpdate[]> {
-    if (!this.isRunning) return [];
-
     try {
       console.log('🔍 Checking all auctions for bid updates...');
       
@@ -86,29 +84,43 @@ export class AuctionMonitor {
         
         console.log(`Checking auction ${auction.id}: ${auction.opalType} - Current: $${currentBid}`);
         
-        const newBids = await commentMonitor.checkForNewBids(
-          auction.postUrl, 
-          currentBid, 
-          startingBid
-        );
+        let newBids = [];
+        try {
+          newBids = await commentMonitor.checkForNewBids(
+            auction.postUrl, 
+            currentBid, 
+            startingBid
+          );
+        } catch (error) {
+          console.error(`❌ Error checking auction ${auction.id}:`, error);
+          continue; // Skip this auction and continue with others
+        }
         
         // Get the highest valid bid
         const validBids = newBids.filter(bid => bid.isValid);
         if (validBids.length > 0) {
           const highestBid = validBids[0]; // Already sorted by amount
-          console.log(`✅ New bid found for ${auction.id}: $${currentBid} → $${highestBid.amount} from ${highestBid.bidderName}`);
+          const currentBidNum = parseFloat(auction.currentBid || auction.startingBid);
           
-          const updateResult = await storage.updateAuction(auction.id, {
-            currentBid: highestBid.amount.toString(),
-            currentBidder: highestBid.bidderName
-          });
-          
-          if (updateResult) {
-            updates.push({
-              auctionId: auction.id,
+          // Update if the detected bid is different from current (higher OR lower)
+          if (highestBid.amount !== currentBidNum) {
+            console.log(`✅ Bid update for ${auction.id}: $${currentBidNum} → $${highestBid.amount} from ${highestBid.bidderName}`);
+            
+            const updateResult = await storage.updateAuction(auction.id, {
               currentBid: highestBid.amount.toString(),
-              lastUpdated: new Date()
+              currentBidder: highestBid.bidderName,
+              lastUpdated: new Date().toISOString()
             });
+            
+            if (updateResult) {
+              updates.push({
+                auctionId: auction.id,
+                currentBid: highestBid.amount.toString(),
+                lastUpdated: new Date()
+              });
+            }
+          } else {
+            console.log(`📊 No change needed for ${auction.id}: current bid matches detected bid ($${highestBid.amount})`);
           }
         }
       }

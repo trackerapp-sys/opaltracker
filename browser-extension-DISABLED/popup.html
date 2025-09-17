@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body {
+      width: 350px;
+      padding: 0;
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8f9fa;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #1877f2, #42b883);
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .header p {
+      margin: 8px 0 0 0;
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    
+    .content {
+      padding: 20px;
+    }
+    
+    .setting-group {
+      margin-bottom: 20px;
+    }
+    
+    .setting-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1c1e21;
+      font-size: 14px;
+    }
+    
+    .setting-group input[type="url"] {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 14px;
+      box-sizing: border-box;
+    }
+    
+    .setting-group input[type="url"]:focus {
+      outline: none;
+      border-color: #1877f2;
+      box-shadow: 0 0 0 2px rgba(24, 119, 242, 0.2);
+    }
+    
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+    }
+    
+    .checkbox-group label {
+      margin: 0;
+      font-weight: normal;
+    }
+    
+    .buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    
+    .btn {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 14px;
+      transition: background-color 0.2s;
+    }
+    
+    .btn-primary {
+      background: #1877f2;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #166fe5;
+    }
+    
+    .btn-secondary {
+      background: #e4e6ea;
+      color: #1c1e21;
+    }
+    
+    .btn-secondary:hover {
+      background: #d8dadf;
+    }
+    
+    .status {
+      background: white;
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 20px;
+      border: 1px solid #e4e6ea;
+    }
+    
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    
+    .status-item:last-child {
+      margin-bottom: 0;
+    }
+    
+    .status-value {
+      font-weight: 600;
+      color: #1877f2;
+    }
+    
+    .help-text {
+      font-size: 12px;
+      color: #65676b;
+      margin-top: 4px;
+    }
+    
+    .success-message {
+      background: #d1f2eb;
+      color: #0d8043;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    
+    .error-message {
+      background: #fdeaea;
+      color: #c92a2a;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🔥 Opal Auction Tracker</h1>
+    <p>Automatically track your Facebook auctions</p>
+  </div>
+  
+  <div class="content">
+    <div id="successMessage" class="success-message"></div>
+    <div id="errorMessage" class="error-message"></div>
+    
+    <div class="status">
+      <div class="status-item">
+        <span>Status:</span>
+        <span class="status-value" id="status">Checking...</span>
+      </div>
+      <div class="status-item">
+        <span>Posts Tracked:</span>
+        <span class="status-value" id="postsTracked">0</span>
+      </div>
+      <div class="status-item">
+        <span>Active Auctions:</span>
+        <span class="status-value" id="activeAuctions">0</span>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <label for="trackerUrl">Auction Tracker URL:</label>
+      <input type="url" id="trackerUrl" placeholder="http://localhost:5003">
+      <div class="help-text">
+        For local development: http://localhost:5003<br>
+        For production: https://your-app.replit.app
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <div class="checkbox-group">
+        <input type="checkbox" id="autoTrack">
+        <label for="autoTrack">Automatically track detected auctions</label>
+      </div>
+    </div>
+    
+    <div class="setting-group">
+      <div class="checkbox-group">
+        <input type="checkbox" id="notifications">
+        <label for="notifications">Enable bid notifications</label>
+      </div>
+    </div>
+    
+    <div class="buttons">
+      <button class="btn btn-secondary" id="openTracker">Open Tracker</button>
+      <button class="btn btn-primary" id="saveSettings">Save Settings</button>
+    </div>
+  </div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

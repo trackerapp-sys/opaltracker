@@ -82,13 +82,13 @@ export class AuctionScraper {
     // Facebook comment-focused bid detection
     const bidPatterns = [
       // Explicit bid context - highest priority
-      { pattern: /(?:bid|current bid|highest bid|offer|take)\s*:?\s*\$(\d{1,3}(?:\.\d{1,2})?)/gi, priority: 1 },
-      { pattern: /(?:bid|current bid|highest bid|offer|take)\s*:?\s*(\d{1,3}(?:\.\d{1,2})?)(?!\d)/gi, priority: 1 },
+      { pattern: /(?:bid|current bid|highest bid|offer|take)\s*:?\s*\$(\d{1,4}(?:\.\d{1,2})?)/gi, priority: 1 },
+      { pattern: /(?:bid|current bid|highest bid|offer|take)\s*:?\s*(\d{1,4}(?:\.\d{1,2})?)(?!\d)/gi, priority: 1 },
       // Dollar amounts in comment context
-      { pattern: /(?:^|\s)\$(\d{1,3}(?:\.\d{1,2})?)(?=\s|$|[!\.,])/g, priority: 2 },
-      { pattern: /(?:^|\s)\$(\d{1,3})(?=\s|$|[!\.,])/g, priority: 3 },
-      // Only accept plain numbers if they look like Facebook comments (short text)
-      { pattern: cleanText.length < 50 ? /(?:^|\s)(\d{1,2}(?:\.\d{1,2})?)(?=\s|$|[!\.,])/g : /(?!.*)/g, priority: 4 },
+      { pattern: /(?:^|\s)\$(\d{1,4}(?:\.\d{1,2})?)(?=\s|$|[!\.,])/g, priority: 2 },
+      { pattern: /(?:^|\s)\$(\d{1,4})(?=\s|$|[!\.,])/g, priority: 3 },
+      // Standalone numbers in Facebook comment format (most common)
+      { pattern: cleanText.length < 50 ? /(?:^|\s)(\d{2,4})(?=\s|$|[!\.,])/g : /(?!.*)/g, priority: 4 },
     ];
 
     const foundBids: Array<{ amount: number; source: string; priority: number }> = [];
@@ -113,8 +113,8 @@ export class AuctionScraper {
           continue;
         }
 
-        // Skip unrealistic amounts (over $200 for more accuracy)
-        if (amount > 200) {
+        // Skip unrealistic amounts (over $2000 for more accuracy)
+        if (amount > 2000) {
           console.log(`⚠️ Ignoring large amount: $${amount} (likely not a bid)`);
           continue;
         }
@@ -135,7 +135,19 @@ export class AuctionScraper {
         if (foundBids.length > 5 && priority > 2) {
           console.log(`⚠️ Skipping excess bid: $${amount} (too many found already)`);
           continue;
-        
+        }
+
+        // Skip common non-bid patterns
+        if (matchText.includes('members') || matchText.includes('comments') || matchText.includes('March') || matchText.includes('2024') || matchText.includes('Message') || matchText.includes('Like') || matchText.includes('Reply') || matchText.includes('Share') || matchText.includes('Reserve price') || matchText.includes('AU$') || matchText.includes('ct') || matchText.includes('g /') || matchText.includes('increments')) {
+          console.log(`⚠️ Skipping non-bid pattern: "${matchText}"`);
+          continue;
+        }
+
+        // Skip specific false positives from logs
+        if (amount === 5671 || amount === 2833 || amount === 2783 || amount === 1353 || amount === 1253 || amount === 603 || amount === 2053 || amount === 1503) {
+          console.log(`⚠️ Skipping known false positive: $${amount}`);
+          continue;
+        }
 
         // Valid bid found
         if (amount >= 5 && amount <= 200) {

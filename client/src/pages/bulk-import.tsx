@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { formatCurrency } from "@/lib/utils";
 import { Upload, Download, Eye, Plus, Trash2, Copy } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -148,7 +149,7 @@ ${auction.description}
 
 📍 Origin: ${auction.origin}
 ⚡ Shape: ${auction.shape} 
-💰 Starting Bid: $${auction.startingBid}
+💰 Reserve Price: ${formatCurrency(auction.startingBid)}
 ⏰ Ends: ${new Date(auction.endTime).toLocaleString()}
 
 #opal #auction #${auction.origin.replace(/\s+/g, '')}`,
@@ -304,8 +305,8 @@ ${auction.description}
                         <p className="font-medium">{auction.origin}</p>
                       </div>
                       <div>
-                        <p className="text-sm text-muted-foreground">Starting Bid</p>
-                        <p className="font-medium">${auction.startingBid}</p>
+                        <p className="text-sm text-muted-foreground">Reserve Price</p>
+                        <p className="font-medium">{formatCurrency(auction.startingBid)}</p>
                       </div>
                       <div>
                         <p className="text-sm text-muted-foreground">Group</p>

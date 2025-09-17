@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Eye, Edit, ExternalLink, DollarSign, Clock, RefreshCw, AlertTriangle } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Eye, Edit, ExternalLink, DollarSign, Clock, RefreshCw, AlertTriangle, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { useOpalTypes } from "@/hooks/use-opal-types";
 import { apiRequest } from "@/lib/queryClient";
+import { convertToUTC, convertFromUTC } from "@/lib/dateUtils";
+import { formatCurrency } from "@/lib/utils";
 
 interface Auction {
   id: string;
@@ -20,21 +23,28 @@ interface Auction {
   startingBid: string;
   currentBid?: string;
   currentBidder?: string;
+  startTime: string;
   endTime: string;
-  status: "active" | "ended" | "won" | "lost";
+  status: "active" | "ended";
   updatedAt: string;
 }
 
 interface AuctionTableProps {
   auctions: Auction[];
-  formatCurrency: (value: string) => string;
   formatDate: (dateString: string) => string;
   getStatusColor: (status: string) => string;
+  showEndedAuctions?: boolean; // New prop to indicate if we're showing ended auctions
 }
 
-export default function AuctionTable({ auctions, formatCurrency, formatDate, getStatusColor }: AuctionTableProps) {
+type SortField = 'opalType' | 'weight' | 'facebookGroup' | 'startingBid' | 'currentBid' | 'currentBidder' | 'startTime' | 'endTime' | 'status';
+type SortDirection = 'asc' | 'desc';
+
+export default function AuctionTable({ auctions, formatDate, getStatusColor, showEndedAuctions = false }: AuctionTableProps) {
   const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [sortField, setSortField] = useState<SortField>('endTime');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [newBid, setNewBid] = useState("");
   const [newBidder, setNewBidder] = useState("");
   const [newStatus, setNewStatus] = useState("");
@@ -47,16 +57,46 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
     startingBid: "",
     currentBid: "",
     maxBid: "",
+    startTime: "",
+    durationHours: "",
+    durationMinutes: "",
     endTime: "",
-    status: "active" as "active" | "ended" | "won" | "lost",
+    status: "active" as "active" | "ended",
     notes: ""
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  // Get opal types from settings
+  const { data: opalTypesData } = useOpalTypes();
+
+  // Get user settings for timezone
+  const { data: settings } = useQuery<{ dateFormat: string; timezone: string }>({
+    queryKey: ["/api/settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings");
+      if (!response.ok) throw new Error("Failed to fetch settings");
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
+  });
+
   const updateAuctionMutation = useMutation({
     mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
-      const response = await apiRequest("PATCH", `/api/auctions/${id}`, updates);
+      // Convert start and end times to UTC for storage
+      const timezone = settings?.timezone || 'Australia/Sydney';
+      console.log('🔄 Updating auction with timezone:', timezone);
+      console.log('📅 Original dates:', { startTime: updates.startTime, endTime: updates.endTime });
+      
+      const processedUpdates = {
+        ...updates,
+        ...(updates.startTime && { startTime: convertToUTC(updates.startTime, timezone) }),
+        ...(updates.endTime && { endTime: convertToUTC(updates.endTime, timezone) })
+      };
+      
+      console.log('📅 Converted dates:', { startTime: processedUpdates.startTime, endTime: processedUpdates.endTime });
+      
+      const response = await apiRequest("PATCH", `/api/auctions/${id}`, processedUpdates);
       return response.json();
     },
     onSuccess: () => {
@@ -64,6 +104,8 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
       queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
       toast({ title: "Success", description: "Auction updated successfully!" });
       setSelectedAuction(null);
+      setEditingAuction(null); // Close the edit dialog
+      setIsEditDialogOpen(false); // Close the dialog
       setNewBid("");
       setNewBidder("");
     },
@@ -84,6 +126,23 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to check for new bids", variant: "destructive" });
+    },
+  });
+
+  const deleteAuctionMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiRequest("DELETE", `/api/auctions/${id}`);
+      // DELETE returns 204 (no content), so don't try to parse JSON
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      toast({ title: "Success", description: "Auction deleted successfully!" });
+    },
+    onError: (error) => {
+      console.error("Delete auction error:", error);
+      toast({ title: "Error", description: "Failed to delete auction", variant: "destructive" });
     },
   });
 
@@ -123,6 +182,12 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
     });
   };
 
+  const handleDeleteAuction = (auction: Auction) => {
+    if (window.confirm(`Are you sure you want to delete this auction?\n\n${auction.opalType} - ${auction.weight}ct\nReserve Price: ${formatCurrency(auction.startingBid)}\n\nThis action cannot be undone.`)) {
+      deleteAuctionMutation.mutate(auction.id);
+    }
+  };
+
   const isEndingSoon = (endTime: string) => {
     const end = new Date(endTime);
     const now = new Date();
@@ -141,141 +206,186 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
     return `${Math.floor(hoursAgo / 24)}d ago`;
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3" />;
+    }
+    return sortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />;
+  };
+
+  const sortedAuctions = [...auctions].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
+
+    switch (sortField) {
+      case 'opalType':
+        aValue = a.opalType.toLowerCase();
+        bValue = b.opalType.toLowerCase();
+        break;
+      case 'weight':
+        aValue = parseFloat(a.weight);
+        bValue = parseFloat(b.weight);
+        break;
+      case 'facebookGroup':
+        aValue = a.facebookGroup.toLowerCase();
+        bValue = b.facebookGroup.toLowerCase();
+        break;
+      case 'startingBid':
+        aValue = parseFloat(a.startingBid);
+        bValue = parseFloat(b.startingBid);
+        break;
+      case 'currentBid':
+        aValue = parseFloat(a.currentBid || a.startingBid);
+        bValue = parseFloat(b.currentBid || b.startingBid);
+        break;
+      case 'currentBidder':
+        aValue = (a.currentBidder || '').toLowerCase();
+        bValue = (b.currentBidder || '').toLowerCase();
+        break;
+      case 'startTime':
+        aValue = new Date(a.startTime).getTime();
+        bValue = new Date(b.startTime).getTime();
+        break;
+      case 'endTime':
+        aValue = new Date(a.endTime).getTime();
+        bValue = new Date(b.endTime).getTime();
+        break;
+      case 'status':
+        aValue = a.status;
+        bValue = b.status;
+        break;
+      default:
+        return 0;
+    }
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
+
   return (
     <div className="bg-card rounded-lg border border-border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full" data-testid="auction-table">
           <thead className="bg-muted">
             <tr>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Opal Details</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Group</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Starting Bid</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Current Bid</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">End Time</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Status</th>
-              <th className="text-left px-6 py-3 text-sm font-medium text-muted-foreground">Quick Actions</th>
+              <th className="text-left px-2 py-2 text-xs font-medium text-muted-foreground w-16">
+                ID
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-32"
+                onClick={() => handleSort('opalType')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>Opal Details</span>
+                  {getSortIcon('opalType')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-24"
+                onClick={() => handleSort('facebookGroup')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>Facebook Group</span>
+                  {getSortIcon('facebookGroup')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-24"
+                onClick={() => handleSort('startingBid')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>Reserve Price</span>
+                  {getSortIcon('startingBid')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-24"
+                onClick={() => handleSort('currentBid')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>Current Bid</span>
+                  {getSortIcon('currentBid')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-24"
+                onClick={() => handleSort('currentBidder')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>{showEndedAuctions ? 'Winning Bidder' : 'Current Bidder'}</span>
+                  {getSortIcon('currentBidder')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-32"
+                onClick={() => handleSort('startTime')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>Start Time</span>
+                  {getSortIcon('startTime')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-32"
+                onClick={() => handleSort('endTime')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>End Time</span>
+                  {getSortIcon('endTime')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none w-28"
+                onClick={() => handleSort('status')}
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>Status</span>
+                  {getSortIcon('status')}
+                </div>
+              </th>
+              <th className="text-left px-2 py-2 text-xs font-medium text-muted-foreground w-24">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {auctions.map((auction) => (
+            {sortedAuctions.map((auction) => (
               <tr key={auction.id} className="hover:bg-muted/50" data-testid={`auction-row-${auction.id}`}>
-                <td className="px-6 py-4">
+                <td className="px-2 py-2 text-xs font-mono text-muted-foreground" data-testid={`auction-id-${auction.id}`} title={`Auction ID: ${auction.id}`}>
+                  {auction.id}
+                </td>
+                <td className="px-2 py-2">
                   <div>
-                    <p className="font-medium text-foreground" data-testid={`opal-details-${auction.id}`}>
+                    <p className="text-xs font-medium text-foreground" data-testid={`opal-details-${auction.id}`}>
                       {auction.opalType} - {auction.weight}ct
                     </p>
-                    {auction.description && (
-                      <p className="text-sm text-muted-foreground">{auction.description}</p>
-                    )}
                   </div>
                 </td>
-                <td className="px-6 py-4 text-sm text-foreground" data-testid={`group-${auction.id}`}>
+                <td className="px-2 py-2 text-xs text-foreground" data-testid={`group-${auction.id}`}>
                   {auction.facebookGroup}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-foreground" data-testid={`starting-bid-${auction.id}`}>
+                <td className="px-2 py-2 text-xs font-medium text-foreground" data-testid={`starting-bid-${auction.id}`}>
                   {formatCurrency(auction.startingBid)}
                 </td>
-                <td className="px-6 py-4 text-sm font-medium text-foreground" data-testid={`current-bid-${auction.id}`}>
-                  <div className="flex items-center space-x-2">
-                    <div className="flex flex-col">
-                      <span>{formatCurrency(auction.currentBid || auction.startingBid)}</span>
-                      {auction.currentBidder && (
-                        <span className="text-xs text-muted-foreground">by {auction.currentBidder}</span>
-                      )}
-                    </div>
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button 
-                          size="sm" 
-                          variant="ghost" 
-                          className="h-6 w-6 p-0 text-accent hover:text-accent/80"
-                          onClick={() => setSelectedAuction(auction)}
-                          data-testid={`button-update-bid-${auction.id}`}
-                        >
-                          <DollarSign className="h-3 w-3" />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                          <DialogTitle>Update Bid - {auction.opalType}</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-4">
-                          <div>
-                            <label className="text-sm font-medium">Current Bid: {formatCurrency(auction.currentBid || auction.startingBid)}</label>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <span className="text-muted-foreground">$</span>
-                              <Input
-                                type="number"
-                                step="0.01"
-                                placeholder="Enter new bid"
-                                value={newBid}
-                                onChange={(e) => setNewBid(e.target.value)}
-                                data-testid="input-new-bid"
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    handleQuickBidUpdate(auction);
-                                  }
-                                }}
-                                autoFocus
-                              />
-                            </div>
-                            <div className="flex gap-1 mt-2 flex-wrap">
-                              {[5, 10, 15, 20, 25, 30].map((increment) => {
-                                const currentAmount = parseFloat(auction.currentBid || auction.startingBid);
-                                const quickBid = currentAmount + increment;
-                                return (
-                                  <Button
-                                    key={increment}
-                                    size="sm"
-                                    variant="outline"
-                                    className="h-6 px-2 text-xs"
-                                    onClick={() => setNewBid(quickBid.toString())}
-                                    data-testid={`button-quick-bid-${increment}`}
-                                  >
-                                    +${increment}
-                                  </Button>
-                                );
-                              })}
-                            </div>
-                            <div className="mt-2">
-                              <Input
-                                placeholder="Bidder name (optional)"
-                                value={newBidder}
-                                onChange={(e) => setNewBidder(e.target.value)}
-                                data-testid="input-bidder-name"
-                                className="text-sm"
-                              />
-                            </div>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button 
-                              onClick={() => handleQuickBidUpdate(auction)}
-                              disabled={updateAuctionMutation.isPending}
-                              className="flex-1"
-                              data-testid="button-save-bid"
-                            >
-                              {updateAuctionMutation.isPending ? "Updating..." : "Update Bid"}
-                            </Button>
-                            {auction.postUrl && (
-                              <Button 
-                                variant="outline" 
-                                onClick={() => window.open(auction.postUrl, '_blank')}
-                                data-testid="button-open-facebook"
-                              >
-                                <ExternalLink className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">
-                            Last updated: {getLastUpdated(auction.updatedAt)}
-                          </p>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
+                <td className="px-2 py-2 text-xs font-medium text-foreground" data-testid={`current-bid-${auction.id}`}>
+                  {formatCurrency(auction.currentBid || "0")}
                 </td>
-                <td className="px-6 py-4 text-sm text-foreground" data-testid={`end-time-${auction.id}`}>
-                  <div className="flex items-center space-x-2">
+                <td className="px-2 py-2 text-xs text-foreground" data-testid={`current-bidder-${auction.id}`}>
+                  {auction.currentBidder || '-'}
+                </td>
+                <td className="px-2 py-2 text-xs text-foreground whitespace-nowrap" data-testid={`start-time-${auction.id}`}>
+                  <span>{formatDate(auction.startTime)}</span>
+                </td>
+                <td className="px-2 py-2 text-xs text-foreground whitespace-nowrap" data-testid={`end-time-${auction.id}`}>
+                  <div className="flex items-center space-x-1">
                     <span>{formatDate(auction.endTime)}</span>
                     {isEndingSoon(auction.endTime) && auction.status === 'active' && (
                       <div className="flex items-center text-amber-600" title="Ending soon!">
@@ -285,75 +395,77 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                     )}
                   </div>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-2 py-2">
                   <Select value={auction.status} onValueChange={(status) => handleStatusUpdate(auction, status)}>
-                    <SelectTrigger className="w-24 h-8 text-xs">
+                    <SelectTrigger className="w-24 h-6 text-xs">
                       <SelectValue>
-                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(auction.status)}`}>
-                          {auction.status.charAt(0).toUpperCase() + auction.status.slice(1)}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white ${
+                          auction.status === "active" ? "bg-green-500" : "bg-red-500"
+                        }`}>
+                          {auction.status === "active" ? "Active" : "Ended"}
                         </span>
                       </SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="active">Active</SelectItem>
                       <SelectItem value="ended">Ended</SelectItem>
-                      <SelectItem value="won">Won</SelectItem>
-                      <SelectItem value="lost">Lost</SelectItem>
                     </SelectContent>
                   </Select>
                 </td>
-                <td className="px-6 py-4">
-                  <div className="flex space-x-1">
+                <td className="px-2 py-2">
+                  <div className="flex space-x-0.5">
                     {auction.postUrl && (
                       <Button 
                         size="sm" 
                         variant="ghost" 
-                        className="h-8 w-8 p-0 text-primary hover:text-primary/80"
+                        className="h-6 w-6 p-0 text-primary hover:text-primary/80"
                         onClick={() => window.open(auction.postUrl, '_blank')}
                         title="Open Facebook auction"
                         data-testid={`button-facebook-${auction.id}`}
                       >
-                        <ExternalLink className="h-4 w-4" />
+                        <ExternalLink className="h-3 w-3" />
                       </Button>
                     )}
                     <Button 
                       size="sm" 
                       variant="ghost" 
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                       onClick={() => {
                         refreshBidsMutation.mutate();
                       }}
                       title="Check for new bids"
                       data-testid={`button-refresh-${auction.id}`}
                     >
-                      <RefreshCw className={`h-4 w-4 ${refreshBidsMutation.isPending ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`h-3 w-3 ${refreshBidsMutation.isPending ? 'animate-spin' : ''}`} />
                     </Button>
-                    <Dialog>
+                    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
                           size="sm" 
                           variant="ghost" 
-                          className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
                           title="Edit auction"
                           data-testid={`button-edit-${auction.id}`}
                           onClick={() => {
                             setEditingAuction(auction);
+                            setIsEditDialogOpen(true);
                             setEditForm({
                               opalType: auction.opalType,
-                              weight: auction.weight,
+                              weight: auction.weight?.toString() || "",
                               description: auction.description || "",
                               facebookGroup: auction.facebookGroup,
                               postUrl: auction.postUrl || "",
-                              startingBid: auction.startingBid,
-                              currentBid: auction.currentBid || "",
+                              startingBid: auction.startingBid?.toString() || "",
+                              currentBid: (auction.currentBid || auction.startingBid)?.toString() || "",
                               maxBid: "", // This field might not exist in current data
-                              endTime: auction.endTime,
-                              status: auction.status,
+                              startTime: convertFromUTC(auction.startTime, settings?.timezone || 'Australia/Sydney'),
+                              endTime: convertFromUTC(auction.endTime, settings?.timezone || 'Australia/Sydney'),
+                              status: "active", // Always set to active
                               notes: "" // This field might not exist in current data
                             });
                           }}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3 w-3" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
@@ -368,12 +480,9 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
-                                <SelectItem value="Black Opal">Black Opal</SelectItem>
-                                <SelectItem value="Crystal Opal">Crystal Opal</SelectItem>
-                                <SelectItem value="Boulder Opal">Boulder Opal</SelectItem>
-                                <SelectItem value="White Opal">White Opal</SelectItem>
-                                <SelectItem value="Fire Opal">Fire Opal</SelectItem>
-                                <SelectItem value="Matrix Opal">Matrix Opal</SelectItem>
+                                {(opalTypesData?.opalTypes || []).map((type) => (
+                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                ))}
                               </SelectContent>
                             </Select>
                           </div>
@@ -416,7 +525,7 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="edit-starting-bid">Starting Bid *</Label>
+                            <Label htmlFor="edit-starting-bid">Reserve Price *</Label>
                             <div className="relative">
                               <span className="absolute left-3 top-2 text-muted-foreground">$</span>
                               <Input
@@ -444,6 +553,15 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                             </div>
                           </div>
                           <div className="space-y-2">
+                            <Label htmlFor="edit-start-time">Start Date & Time *</Label>
+                            <Input
+                              id="edit-start-time"
+                              type="datetime-local"
+                              value={editForm.startTime}
+                              onChange={(e) => setEditForm(prev => ({ ...prev, startTime: e.target.value }))}
+                            />
+                          </div>
+                          <div className="space-y-2">
                             <Label htmlFor="edit-end-time">End Date & Time *</Label>
                             <Input
                               id="edit-end-time"
@@ -452,20 +570,6 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                               onChange={(e) => setEditForm(prev => ({ ...prev, endTime: e.target.value }))}
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="edit-status">Status</Label>
-                            <Select value={editForm.status} onValueChange={(value: any) => setEditForm(prev => ({ ...prev, status: value }))}>
-                              <SelectTrigger>
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="active">Active</SelectItem>
-                                <SelectItem value="ended">Ended</SelectItem>
-                                <SelectItem value="won">Won</SelectItem>
-                                <SelectItem value="lost">Lost</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
                         </div>
                         <div className="flex space-x-2 pt-4">
                           <Button
@@ -473,18 +577,31 @@ export default function AuctionTable({ auctions, formatCurrency, formatDate, get
                               if (editingAuction) {
                                 updateAuctionMutation.mutate({
                                   id: editingAuction.id,
-                                  updates: editForm
+                                  updates: {
+                                    ...editForm,
+                                    status: "active" // Always set to active
+                                  }
                                 });
                               }
                             }}
                             disabled={updateAuctionMutation.isPending}
-                            className="flex-1"
+                            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
                           >
                             {updateAuctionMutation.isPending ? "Saving..." : "Save Changes"}
                           </Button>
                         </div>
                       </DialogContent>
                     </Dialog>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-6 w-6 p-0 text-destructive hover:text-destructive/80"
+                      onClick={() => handleDeleteAuction(auction)}
+                      title="Delete auction"
+                      data-testid={`button-delete-${auction.id}`}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
                   </div>
                 </td>
               </tr>

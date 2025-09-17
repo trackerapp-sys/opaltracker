@@ -7,6 +7,103 @@ import { facebookScraper } from "./facebook-scraper";
 import { facebookWebhooks } from "./facebook-webhooks";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Settings endpoints
+  app.get("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error fetching settings:", error);
+      res.status(500).json({ message: "Failed to fetch settings" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    try {
+      const settings = await storage.saveSettings(req.body);
+      
+      // Handle bid monitoring settings changes
+      if (req.body.bidMonitoringEnabled !== undefined || req.body.bidCheckInterval !== undefined) {
+        const currentSettings = await storage.getSettings();
+        
+        if (currentSettings.bidMonitoringEnabled) {
+          // Update the monitor interval if it's running
+          if (auctionMonitor.getStatus().running) {
+            auctionMonitor.updateInterval(currentSettings.bidCheckInterval);
+          }
+        } else {
+          // Stop monitoring if disabled
+          if (auctionMonitor.getStatus().running) {
+            auctionMonitor.stop();
+          }
+        }
+      }
+      
+      res.json(settings);
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      res.status(500).json({ message: "Failed to save settings" });
+    }
+  });
+
+  // Reset settings to defaults
+  app.post("/api/settings/reset", async (req, res) => {
+    try {
+      const settings = await storage.resetSettings();
+      res.json(settings);
+    } catch (error) {
+      console.error("Error resetting settings:", error);
+      res.status(500).json({ message: "Failed to reset settings" });
+    }
+  });
+
+  // Payment methods endpoints
+  app.get("/api/settings/payment-methods", async (req, res) => {
+    try {
+      const paymentMethods = await storage.getPaymentMethods();
+      res.json(paymentMethods);
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+      res.status(500).json({ message: "Failed to fetch payment methods" });
+    }
+  });
+
+  app.post("/api/settings/payment-methods", async (req, res) => {
+    try {
+      const paymentMethod = await storage.addPaymentMethod(req.body);
+      res.status(201).json(paymentMethod);
+    } catch (error) {
+      console.error("Error adding payment method:", error);
+      res.status(500).json({ message: "Failed to add payment method" });
+    }
+  });
+
+  app.put("/api/settings/payment-methods/:id", async (req, res) => {
+    try {
+      const paymentMethod = await storage.updatePaymentMethod(req.params.id, req.body);
+      if (!paymentMethod) {
+        return res.status(404).json({ message: "Payment method not found" });
+      }
+      res.json(paymentMethod);
+    } catch (error) {
+      console.error("Error updating payment method:", error);
+      res.status(500).json({ message: "Failed to update payment method" });
+    }
+  });
+
+  app.delete("/api/settings/payment-methods/:id", async (req, res) => {
+    try {
+      const success = await storage.deletePaymentMethod(req.params.id);
+      if (!success) {
+        return res.status(404).json({ message: "Payment method not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      console.error("Error deleting payment method:", error);
+      res.status(500).json({ message: "Failed to delete payment method" });
+    }
+  });
+
   // Get all auctions with optional filters
   app.get("/api/auctions", async (req, res) => {
     try {
@@ -227,98 +324,67 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Auction monitoring endpoints
   app.get("/api/monitor/status", async (req, res) => {
-    res.json({ running: false, message: "Chrome extension handles detection" });
+    const status = auctionMonitor.getStatus();
+    res.json({ 
+      running: status.running, 
+      nextCheck: status.nextCheck,
+      message: status.running ? "Server monitoring active" : "Server monitoring stopped"
+    });
   });
 
   app.post("/api/monitor/start", async (req, res) => {
-    res.json({ message: "Server monitoring disabled - use Chrome extension", status: { running: false } });
+    try {
+      auctionMonitor.start();
+      res.json({ 
+        message: "Server monitoring started", 
+        status: auctionMonitor.getStatus() 
+      });
+    } catch (error) {
+      console.error("Error starting monitoring:", error);
+      res.status(500).json({ message: "Failed to start monitoring" });
+    }
   });
 
   app.post("/api/monitor/stop", async (req, res) => {
-    res.json({ message: "Server monitoring already disabled", status: { running: false } });
-  });
-
-  // AUTO-MONITOR: Check Facebook URLs from auctions  
-  app.post("/api/monitor/check", async (req, res) => {
     try {
-      // Get all active auctions with Facebook URLs
-      const result = await storage.getAuctions({ status: "active" });
-      const activeAuctions = result.auctions.filter(auction => 
-        auction.postUrl && auction.postUrl.includes('facebook.com')
-      );
-      
-      if (activeAuctions.length === 0) {
-        return res.json({ 
-          message: "No active Facebook auctions to monitor",
-          monitored: 0,
-          updates: [],
-          auctions: []
-        });
-      }
-
-      console.log(`🔍 Auto-checking ${activeAuctions.length} active Facebook auction URLs`);
-      
-      const updates: any[] = [];
-      
-      // Check each auction URL for bid updates
-      for (const auction of activeAuctions) {
-        if (auction.postUrl && auction.postUrl.includes('facebook.com')) {
-          console.log(`📊 Checking auction ${auction.opalType} (${auction.id}): ${auction.postUrl}`);
-          
-          try {
-            const currentBidNum = parseInt(auction.currentBid || auction.startingBid);
-            
-            // DISABLED: Facebook scraping unreliable - use Chrome extension instead
-            console.log(`📱 Skipping Facebook scraping (use Chrome extension): ${auction.postUrl}`);
-            const scrapedData = { currentBid: null, bidCount: 0, bids: [] };
-            
-            if (scrapedData.currentBid && scrapedData.currentBid > currentBidNum) {
-              console.log(`💰 REAL BID DETECTED: $${scrapedData.currentBid} (was $${currentBidNum}) - ${scrapedData.bidCount} total bids`);
-              
-              // Update the auction with REAL bid info from Facebook
-              const updated = await storage.updateAuction(auction.id, {
-                currentBid: scrapedData.currentBid.toString(),
-                bidCount: scrapedData.bidCount,
-                lastUpdated: new Date().toISOString()
-              });
-              
-              if (updated) {
-                updates.push({
-                  id: auction.id,
-                  opalType: auction.opalType,
-                  previousBid: currentBidNum,
-                  newBid: scrapedData.currentBid,
-                  bidCount: scrapedData.bidCount,
-                  url: auction.postUrl,
-                  scrapedComments: scrapedData.comments.slice(0, 3) // Show sample comments
-                });
-                console.log(`✅ Updated auction ${auction.id} with REAL Facebook bid: $${scrapedData.currentBid}`);
-              }
-            } else if (scrapedData.currentBid) {
-              console.log(`📊 No new bids - current: $${scrapedData.currentBid}, tracked: $${currentBidNum}`);
-            } else {
-              console.log(`🔍 No bids found in Facebook post comments`);
-            }
-          } catch (error) {
-            console.error(`❌ Error checking auction ${auction.id}:`, error);
-          }
-        }
-      }
-      
+      auctionMonitor.stop();
       res.json({ 
-        message: `Automatically checked ${activeAuctions.length} Facebook auction URLs`,
-        monitored: activeAuctions.length,
-        updates: updates,
-        auctions: activeAuctions.map(a => ({ 
-          id: a.id, 
-          opalType: a.opalType,
-          url: a.postUrl, 
-          currentBid: a.currentBid || a.startingBid 
-        }))
+        message: "Server monitoring stopped", 
+        status: auctionMonitor.getStatus() 
       });
     } catch (error) {
-      console.error("Error in auto-monitoring:", error);
-      res.status(500).json({ message: "Failed to check auction URLs" });
+      console.error("Error stopping monitoring:", error);
+      res.status(500).json({ message: "Failed to stop monitoring" });
+    }
+  });
+
+  // AUTO-MONITOR: Check Facebook URLs from auctions - DISABLED TO PREVENT CONFLICTS WITH EXTENSION
+  app.post("/api/monitor/check", async (req, res) => {
+    try {
+      console.log("🔍 Manual auction check triggered...");
+      
+      // Simple check without comment monitor for now
+      const result = await storage.getAuctions({ status: 'active' });
+      const auctions = result?.auctions || [];
+      
+      if (auctions.length === 0) {
+        res.json({ message: "No active auctions to check", updates: [] });
+        return;
+      }
+      
+      console.log(`📊 Found ${auctions.length} active auctions`);
+      auctions.forEach(auction => {
+        console.log(`  - ${auction.opalType}: $${auction.currentBid || auction.startingBid} (${auction.postUrl ? 'has URL' : 'no URL'})`);
+      });
+      
+      res.json({ 
+        message: `Manual check complete - found ${auctions.length} active auctions`, 
+        updates: [],
+        auctions: auctions.map(a => ({ id: a.id, opalType: a.opalType, currentBid: a.currentBid || a.startingBid }))
+      });
+    } catch (error) {
+      console.error("Error in manual check:", error);
+      res.status(500).json({ message: "Manual check failed" });
     }
   });
 
@@ -329,6 +395,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post('/webhook/facebook', (req, res) => {
     facebookWebhooks.processWebhook(req, res);
+  });
+
+  // Facebook direct posting endpoint
+  app.post('/api/facebook/post', async (req, res) => {
+    try {
+      const { accessToken, message, groupId, auctionId } = req.body;
+
+      if (!accessToken || !message) {
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Access token and message are required' 
+        });
+      }
+
+      console.log(`📤 Posting to Facebook:`, message.substring(0, 100) + '...');
+
+      // For now, we'll post to user's timeline since group posting requires special permissions
+      // Facebook has restricted group posting to verified apps only
+      const facebookResponse = await fetch(`https://graph.facebook.com/v18.0/me/feed`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          access_token: accessToken
+        })
+      });
+
+      const result = await facebookResponse.json();
+
+      if (facebookResponse.ok && result.id) {
+        console.log(`✅ Facebook post successful: ${result.id}`);
+        
+        // Update auction with the Facebook post URL if auctionId provided
+        if (auctionId) {
+          const postUrl = `https://www.facebook.com/${result.id}`;
+          await storage.updateAuction(auctionId, { postUrl });
+          console.log(`🔗 Updated auction ${auctionId} with Facebook post URL: ${postUrl}`);
+        }
+
+        res.json({ 
+          success: true, 
+          postId: result.id,
+          postUrl: `https://www.facebook.com/${result.id}`,
+          message: 'Post published to your Facebook timeline! You can share it to groups manually.' 
+        });
+      } else {
+        console.error('❌ Facebook posting failed:', result);
+        res.status(400).json({ 
+          success: false, 
+          message: result.error?.message || 'Failed to post to Facebook',
+          error: result.error 
+        });
+      }
+    } catch (error) {
+      console.error('❌ Facebook posting error:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Internal server error while posting to Facebook' 
+      });
+    }
+  });
+
+  // Bid update endpoint for browser extension
+  app.post("/api/bid-updates", async (req, res) => {
+    try {
+      const { currentBid, bidderName, url, source } = req.body;
+      
+      console.log(`📞 Bid update received: $${currentBid} from ${bidderName} via ${source} at ${url}`);
+      
+      // Find auction by URL
+      const { auctions } = await storage.getAuctions({ status: 'active' });
+      let auction = auctions.find(a => a.postUrl === url);
+      
+      // If no auction exists, create one automatically
+      if (!auction) {
+        console.log(`🆕 No auction found for URL: ${url} - Creating new auction automatically`);
+        
+        // Generate a new auction ID
+        const auctionCount = await storage.getAuctionCount();
+        const newAuctionId = `AU${String(auctionCount + 1).padStart(4, '0')}`;
+        
+        // Create a basic auction with the detected bid
+        const newAuction = {
+          id: newAuctionId,
+          opalType: 'Unknown', // Will be updated when user edits
+          weight: 'Unknown',
+          description: 'Auto-detected from Facebook post',
+          facebookGroup: 'Unknown', // Will be updated when user edits
+          postUrl: url,
+          startingBid: currentBid.toString(),
+          currentBid: currentBid.toString(),
+          currentBidder: bidderName || 'Unknown',
+          startTime: new Date().toISOString(),
+          durationHours: '24',
+          durationMinutes: '0',
+          endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
+          status: 'active',
+          notes: 'Auto-created from Facebook bid detection',
+          isWatchlist: false,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        try {
+          await storage.createAuction(newAuction);
+          auction = newAuction;
+          console.log(`✅ Auto-created auction ${newAuctionId} for URL: ${url}`);
+        } catch (createError) {
+          console.error('❌ Failed to auto-create auction:', createError);
+          res.status(500).json({ success: false, message: 'Failed to auto-create auction' });
+          return;
+        }
+      }
+      
+      // Update the auction with the new bid
+      const currentBidFloat = parseFloat(auction.currentBid || auction.startingBid);
+      const newBidFloat = parseFloat(currentBid);
+      
+      if (newBidFloat >= currentBidFloat) {
+        await storage.updateAuction(auction.id, {
+          currentBid: currentBid.toString(),
+          currentBidder: bidderName || 'Unknown'
+        });
+        
+        if (newBidFloat > currentBidFloat) {
+          console.log(`✅ Bid updated: $${currentBidFloat} → $${newBidFloat} by ${bidderName}`);
+          res.json({ success: true, message: `Updated to $${newBidFloat}`, auctionId: auction.id });
+        } else {
+          console.log(`✅ Bidder name updated: $${newBidFloat} by ${bidderName} (same amount)`);
+          res.json({ success: true, message: `Bidder name updated to ${bidderName}`, auctionId: auction.id });
+        }
+      } else {
+        console.log(`📊 Bid $${newBidFloat} not higher than current $${currentBidFloat}`);
+        res.json({ success: false, message: `Bid $${newBidFloat} not higher than current $${currentBidFloat}` });
+      }
+    } catch (error) {
+      console.error('❌ Bid update error:', error);
+      res.status(500).json({ success: false, message: 'Bid update failed' });
+    }
   });
 
   // Webhook endpoint for external bid notifications
@@ -366,10 +573,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Live Auction routes
+  app.get("/api/live-auctions", async (req, res) => {
+    try {
+      const liveAuctions = storage.getAllLiveAuctions();
+      res.json({ liveAuctions });
+    } catch (error) {
+      console.error("Error fetching live auctions:", error);
+      res.status(500).json({ message: "Failed to fetch live auctions" });
+    }
+  });
+
+  app.post("/api/live-auctions", async (req, res) => {
+    try {
+      const liveAuctionData = req.body;
+      const liveAuction = storage.createLiveAuction(liveAuctionData);
+      res.status(201).json({ liveAuction });
+    } catch (error) {
+      console.error("Error creating live auction:", error);
+      res.status(500).json({ message: "Failed to create live auction" });
+    }
+  });
+
+  app.get("/api/live-auctions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const liveAuction = storage.getLiveAuction(id);
+      if (liveAuction) {
+        res.json({ liveAuction });
+      } else {
+        res.status(404).json({ message: "Live auction not found" });
+      }
+    } catch (error) {
+      console.error("Error fetching live auction:", error);
+      res.status(500).json({ message: "Failed to fetch live auction" });
+    }
+  });
+
+  app.patch("/api/live-auctions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateData = req.body;
+      const liveAuction = storage.updateLiveAuction(id, updateData);
+      if (liveAuction) {
+        res.json({ liveAuction });
+      } else {
+        res.status(404).json({ message: "Live auction not found" });
+      }
+    } catch (error) {
+      console.error("Error updating live auction:", error);
+      res.status(500).json({ message: "Failed to update live auction" });
+    }
+  });
+
+  app.delete("/api/live-auctions/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const success = storage.deleteLiveAuction(id);
+      if (success) {
+        res.json({ message: "Live auction deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Live auction not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting live auction:", error);
+      res.status(500).json({ message: "Failed to delete live auction" });
+    }
+  });
+
+  // Auction Items routes
+  app.get("/api/live-auctions/:id/items", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const items = storage.getAuctionItemsByLiveAuctionId(id);
+      res.json({ auctionItems: items });
+    } catch (error) {
+      console.error("Error fetching auction items:", error);
+      res.status(500).json({ message: "Failed to fetch auction items" });
+    }
+  });
+
+  app.post("/api/live-auctions/:id/items", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const itemData = { ...req.body, liveAuctionId: id };
+      const item = storage.createAuctionItem(itemData);
+      res.status(201).json({ auctionItem: item });
+    } catch (error) {
+      console.error("Error creating auction item:", error);
+      res.status(500).json({ message: "Failed to create auction item" });
+    }
+  });
+
+  app.post("/api/live-auctions/:id/items/bulk", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const items = req.body.items || [];
+      const createdItems = items.map((itemData: any) => {
+        const item = storage.createAuctionItem({ ...itemData, liveAuctionId: id });
+        return item;
+      });
+      res.status(201).json({ auctionItems: createdItems });
+    } catch (error) {
+      console.error("Error creating bulk auction items:", error);
+      res.status(500).json({ message: "Failed to create bulk auction items" });
+    }
+  });
+
+  app.patch("/api/live-auctions/:id/items/:itemId", async (req, res) => {
+    try {
+      const { itemId } = req.params;
+      const updateData = req.body;
+      const item = storage.updateAuctionItem(itemId, updateData);
+      if (item) {
+        res.json({ auctionItem: item });
+      } else {
+        res.status(404).json({ message: "Auction item not found" });
+      }
+    } catch (error) {
+      console.error("Error updating auction item:", error);
+      res.status(500).json({ message: "Failed to update auction item" });
+    }
+  });
+
+  app.delete("/api/live-auctions/:id/items/:itemId", async (req, res) => {
+    try {
+      const { itemId } = req.params;
+      const success = storage.deleteAuctionItem(itemId);
+      if (success) {
+        res.json({ message: "Auction item deleted successfully" });
+      } else {
+        res.status(404).json({ message: "Auction item not found" });
+      }
+    } catch (error) {
+      console.error("Error deleting auction item:", error);
+      res.status(500).json({ message: "Failed to delete auction item" });
+    }
+  });
+
   const httpServer = createServer(app);
   
-  // Server monitoring disabled - Chrome extension handles all detection
-  console.log("🚀 Server ready - Chrome extension will handle bid detection...");
+  // Start server monitoring by default - DISABLED TO PREVENT CONFLICTS WITH EXTENSION
+  console.log("🚀 Server ready - auction monitoring DISABLED (using extension instead)...");
   // auctionMonitor.start();
   
   return httpServer;

@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { RefreshCw, Save, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { formatCurrency } from "@/lib/utils";
 
 interface Auction {
   id: string;
@@ -17,7 +18,7 @@ interface Auction {
   startingBid: string;
   currentBid?: string;
   endTime: string;
-  status: "active" | "ended" | "won" | "lost";
+  status: "active" | "ended";
   updatedAt: string;
 }
 
@@ -113,7 +114,6 @@ export default function BulkUpdate() {
     }
   };
 
-  const formatCurrency = (value: string) => `$${Math.round(parseFloat(value))}`;
   const isEndingSoon = (endTime: string) => {
     const end = new Date(endTime);
     const now = new Date();

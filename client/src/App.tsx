@@ -7,13 +7,19 @@ import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/dashboard";
 import Auctions from "@/pages/auctions";
 import AddAuction from "@/pages/add-auction";
-import Analytics from "@/pages/analytics";
 import Export from "@/pages/export";
 import BulkUpdate from "@/pages/bulk-update";
-import Monitor from "@/pages/monitor";
 import LiveAuction from "@/pages/live-auction";
+import LiveAuctionDashboard from "@/pages/live-auction-dashboard";
+import LiveAuctionSession from "@/pages/live-auction-session";
+import LiveAuctionItemManager from "@/pages/live-auction-item-manager";
+import LiveAuctionControl from "@/pages/live-auction-control";
 import BulkImport from "@/pages/bulk-import";
-import AuctionTemplates from "@/pages/auction-templates";
+import Settings from "@/pages/settings";
+import OpalTypeSettings from "@/pages/opal-type-settings";
+import Help from "@/pages/help";
+import Monitor from "@/pages/monitor";
+import DevTesting from "@/pages/dev-testing";
 import Sidebar from "@/components/sidebar";
 
 function Router() {
@@ -25,13 +31,19 @@ function Router() {
           <Route path="/" component={Dashboard} />
           <Route path="/auctions" component={Auctions} />
           <Route path="/add-auction" component={AddAuction} />
-          <Route path="/analytics" component={Analytics} />
           <Route path="/export" component={Export} />
           <Route path="/bulk-update" component={BulkUpdate} />
-          <Route path="/monitor" component={Monitor} />
           <Route path="/live-auction" component={LiveAuction} />
+          <Route path="/live-auction-dashboard" component={LiveAuctionDashboard} />
+          <Route path="/live-auction-session" component={LiveAuctionSession} />
+          <Route path="/live-auction-item-manager" component={LiveAuctionItemManager} />
+        <Route path="/live-auction-control/:id" component={LiveAuctionControl} />
           <Route path="/bulk-import" component={BulkImport} />
-          <Route path="/templates" component={AuctionTemplates} />
+          <Route path="/settings" component={Settings} />
+          <Route path="/opal-type-settings" component={OpalTypeSettings} />
+          <Route path="/help" component={Help} />
+          <Route path="/monitor" component={Monitor} />
+          {process.env.NODE_ENV === 'development' && <Route path="/dev-testing" component={DevTesting} />}
           <Route component={NotFound} />
         </Switch>
       </main>
