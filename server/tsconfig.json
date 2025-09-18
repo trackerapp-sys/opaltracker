@@ -18,7 +18,8 @@
     "paths": {
       "@shared/*": ["../shared/*"],
       "@assets/*": ["../attached_assets/*"]
-    }
+    },
+    "typeRoots": ["../node_modules/@types"]
   },
   "include": [
     "**/*.ts"
