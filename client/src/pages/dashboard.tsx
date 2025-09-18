@@ -241,40 +241,34 @@ export default function Dashboard() {
             <p className="text-sm text-muted-foreground mt-1">Get started with common tasks</p>
             {/* Updated design - v2 */}
           </div>
-          <div className="p-4">
-            {/* Primary Actions */}
-            <div className="space-y-2 mb-4">
-              <h4 className="text-sm font-medium text-foreground mb-2">Create New</h4>
+          <div className="p-3">
+            <div className="space-y-3">
               <Link href="/add-auction">
-                <Button className="w-full justify-center h-10" data-testid="button-add-auction">
+                <Button className="w-full justify-center h-9 text-sm" data-testid="button-add-auction">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Individual Auction
+                  Add Auction
                 </Button>
               </Link>
               
               <Link href="/live-auction-session">
-                <Button className="w-full justify-center h-10 bg-blue-600 hover:bg-blue-700">
+                <Button className="w-full justify-center h-9 text-sm bg-blue-600 hover:bg-blue-700">
                   <Calendar className="w-4 h-4 mr-2" />
-                  Create Live Auction
+                  Live Auction
                 </Button>
               </Link>
-            </div>
-
-            {/* Secondary Actions */}
-            <div className="space-y-2">
-              <h4 className="text-sm font-medium text-foreground mb-2">View & Manage</h4>
+              
               <div className="grid grid-cols-2 gap-2">
                 <Link href="/auctions">
-                  <Button variant="outline" className="w-full justify-center h-9 text-xs" data-testid="button-search-auctions">
+                  <Button variant="outline" className="w-full justify-center h-8 text-xs" data-testid="button-search-auctions">
                     <Search className="w-3 h-3 mr-1" />
-                    Individual
+                    View
                   </Button>
                 </Link>
                 
                 <Link href="/live-auction-dashboard">
-                  <Button variant="outline" className="w-full justify-center h-9 text-xs">
+                  <Button variant="outline" className="w-full justify-center h-8 text-xs">
                     <Calendar className="w-3 h-3 mr-1" />
-                    Live
+                    Manage
                   </Button>
                 </Link>
               </div>
