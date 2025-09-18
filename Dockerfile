@@ -20,7 +20,7 @@ RUN npm run build
 RUN npm prune --production
 
 # Expose port
-EXPOSE 5003
+EXPOSE 5000
 
 # Start the application
 CMD ["npm", "start"]
