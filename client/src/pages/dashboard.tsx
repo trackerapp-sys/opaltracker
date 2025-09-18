@@ -239,6 +239,7 @@ export default function Dashboard() {
           <div className="p-6 border-b border-border">
             <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
             <p className="text-sm text-muted-foreground mt-1">Get started with common tasks</p>
+            {/* Updated design - v2 */}
           </div>
           <div className="p-6">
             {/* Primary Actions */}
