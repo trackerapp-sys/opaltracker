@@ -157,6 +157,11 @@ export class MemStorage implements IStorage {
       currentBid: insertAuction.currentBid || "0",
       currentBidder: insertAuction.currentBidder || null,
       maxBid: insertAuction.maxBid || null,
+      bidIncrements: insertAuction.bidIncrements || null,
+      localShipping: insertAuction.localShipping || null,
+      internationalShipping: insertAuction.internationalShipping || null,
+      location: insertAuction.location || null,
+      paymentMethod: insertAuction.paymentMethod || null,
       notes: insertAuction.notes || null,
       isWatchlist: insertAuction.isWatchlist || false,
     };
