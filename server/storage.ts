@@ -155,6 +155,7 @@ export class MemStorage implements IStorage {
       shape: insertAuction.shape || null,
       postUrl: insertAuction.postUrl || null,
       currentBid: insertAuction.currentBid || "0",
+      currentBidder: insertAuction.currentBidder || null,
       maxBid: insertAuction.maxBid || null,
       notes: insertAuction.notes || null,
       isWatchlist: insertAuction.isWatchlist || false,

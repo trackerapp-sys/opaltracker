@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { insertAuctionSchema } from "../shared/schema";
 import { auctionMonitor } from "./monitor";
 import { facebookScraper } from "./facebook-scraper";
 import { facebookWebhooks } from "./facebook-webhooks";
