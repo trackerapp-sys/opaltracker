@@ -1,4 +1,4 @@
-import { type Auction, type InsertAuction, type LiveAuction, type InsertLiveAuction, type AuctionItem, type InsertAuctionItem } from "@shared/schema.js";
+import { type Auction, type InsertAuction, type LiveAuction, type InsertLiveAuction, type AuctionItem, type InsertAuctionItem } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {

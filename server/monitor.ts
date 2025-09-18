@@ -1,6 +1,6 @@
 import * as cron from 'node-cron';
-import { commentMonitor } from './comment-monitor.js';
-import { storage } from './storage.js';
+import { commentMonitor } from './comment-monitor';
+import { storage } from './storage';
 
 export interface BidUpdate {
   auctionId: string;
