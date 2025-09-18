@@ -238,37 +238,64 @@ export default function Dashboard() {
         <div className="bg-card rounded-lg border border-border">
           <div className="p-6 border-b border-border">
             <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+            <p className="text-sm text-muted-foreground mt-1">Get started with common tasks</p>
           </div>
-          <div className="p-6 space-y-3">
-            <Link href="/add-auction">
-              <Button className="w-full justify-center" data-testid="button-add-auction">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Individual Auction
-              </Button>
-            </Link>
-            
-            <Link href="/live-auction-session">
-              <Button className="w-full justify-center bg-blue-600 hover:bg-blue-700">
-                <Calendar className="w-4 h-4 mr-2" />
-                Create Live Auction
-              </Button>
-            </Link>
-            
-            <div className="flex items-center space-x-2">
-              <Link href="/auctions" className="flex-1">
-                <Button variant="secondary" className="w-full justify-center" data-testid="button-search-auctions">
-                  <Search className="w-4 h-4 mr-2" />
-                  View Individual Auctions
+          <div className="p-6">
+            {/* Primary Actions */}
+            <div className="space-y-3 mb-6">
+              <h4 className="text-sm font-medium text-foreground mb-3">Create New</h4>
+              <Link href="/add-auction">
+                <Button className="w-full justify-start h-12" data-testid="button-add-auction">
+                  <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center mr-3">
+                    <Plus className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Add Individual Auction</div>
+                    <div className="text-xs text-muted-foreground">Track a single opal auction</div>
+                  </div>
                 </Button>
               </Link>
-              <Link href="/live-auction-dashboard" className="flex-1">
-                <Button variant="secondary" className="w-full justify-center">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  View Live Auctions
+              
+              <Link href="/live-auction-session">
+                <Button className="w-full justify-start h-12 bg-blue-600 hover:bg-blue-700">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
+                    <Calendar className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Create Live Auction</div>
+                    <div className="text-xs text-blue-100">Start a live auction session</div>
+                  </div>
                 </Button>
               </Link>
             </div>
 
+            {/* Secondary Actions */}
+            <div className="space-y-3">
+              <h4 className="text-sm font-medium text-foreground mb-3">View & Manage</h4>
+              <Link href="/auctions">
+                <Button variant="outline" className="w-full justify-start h-11" data-testid="button-search-auctions">
+                  <div className="w-7 h-7 bg-muted rounded-lg flex items-center justify-center mr-3">
+                    <Search className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Individual Auctions</div>
+                    <div className="text-xs text-muted-foreground">View all tracked auctions</div>
+                  </div>
+                </Button>
+              </Link>
+              
+              <Link href="/live-auction-dashboard">
+                <Button variant="outline" className="w-full justify-start h-11">
+                  <div className="w-7 h-7 bg-muted rounded-lg flex items-center justify-center mr-3">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <div className="text-left">
+                    <div className="font-medium">Live Auctions</div>
+                    <div className="text-xs text-muted-foreground">Manage live sessions</div>
+                  </div>
+                </Button>
+              </Link>
+            </div>
           </div>
         </div>
       </div>
