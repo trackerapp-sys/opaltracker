@@ -15,8 +15,8 @@ app.use(cors({
   credentials: true
 }));
 
-// Serve static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Serve static files from dist/public (Vite build output)
+app.use(express.static(path.join(__dirname, 'dist', 'public')));
 
 // Basic API endpoint
 app.get('/api/health', (req, res) => {
@@ -25,7 +25,7 @@ app.get('/api/health', (req, res) => {
 
 // Serve the React app for all other routes
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
