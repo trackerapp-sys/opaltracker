@@ -163,6 +163,7 @@ export class MemStorage implements IStorage {
       location: insertAuction.location || null,
       paymentMethod: insertAuction.paymentMethod || null,
       durationMinutes: insertAuction.durationMinutes || "0",
+      status: insertAuction.status || "active",
       notes: insertAuction.notes || null,
       isWatchlist: insertAuction.isWatchlist || false,
     };
