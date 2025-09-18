@@ -5,9 +5,8 @@
   "license": "MIT",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
-    "build": "vite build && npm run build:server",
-    "build:server": "tsc --project server/tsconfig.json",
-    "start": "NODE_ENV=production node dist/server/index.js",
+    "build": "vite build",
+    "start": "NODE_ENV=production tsx server/index.ts",
     "start:dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "start:win": "set NODE_ENV=production && node dist/index.js",
     "dev:win": "set NODE_ENV=development && tsx server/index.ts",
