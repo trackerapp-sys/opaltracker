@@ -149,6 +149,7 @@ export class MemStorage implements IStorage {
       id,
       createdAt: now,
       updatedAt: now,
+      weightGrams: insertAuction.weightGrams || null,
       description: insertAuction.description || null,
       origin: insertAuction.origin || null,
       shape: insertAuction.shape || null,
@@ -192,8 +193,8 @@ export class MemStorage implements IStorage {
     const allAuctions = Array.from(this.auctions.values());
     const totalAuctions = allAuctions.length;
     const activeAuctions = allAuctions.filter(a => a.status === "active").length;
-    const wonAuctions = allAuctions.filter(a => a.status === "won").length;
-    const endedAuctions = allAuctions.filter(a => a.status === "ended" || a.status === "won" || a.status === "lost").length;
+    const wonAuctions = allAuctions.filter(a => a.status === "ended").length;
+    const endedAuctions = allAuctions.filter(a => a.status === "ended").length;
 
     // Calculate average price and price range
     const prices = allAuctions.map(a => parseFloat(a.currentBid || a.startingBid));
@@ -209,7 +210,7 @@ export class MemStorage implements IStorage {
       const group = auction.facebookGroup;
       const existing = groupMap.get(group) || { auctions: 0, won: 0, totalPrice: 0 };
       existing.auctions++;
-      if (auction.status === "won") existing.won++;
+      if (auction.status === "ended") existing.won++;
       existing.totalPrice += parseFloat(auction.currentBid || auction.startingBid);
       groupMap.set(group, existing);
     });
@@ -253,6 +254,10 @@ export class MemStorage implements IStorage {
     const newLiveAuction: LiveAuction = {
       id,
       ...liveAuction,
+      description: liveAuction.description || null,
+      postUrl: liveAuction.postUrl || null,
+      status: liveAuction.status || "scheduled",
+      totalItems: liveAuction.totalItems || "0",
       createdAt: now,
       updatedAt: now,
     };
@@ -292,6 +297,20 @@ export class MemStorage implements IStorage {
     const newItem: AuctionItem = {
       id,
       ...item,
+      description: item.description || null,
+      origin: item.origin || null,
+      shape: item.shape || null,
+      currentBid: item.currentBid || null,
+      currentBidder: item.currentBidder || null,
+      maxBid: item.maxBid || null,
+      shippingCost: item.shippingCost || null,
+      location: item.location || null,
+      paymentMethod: item.paymentMethod || null,
+      status: item.status || "pending",
+      biddingDuration: item.biddingDuration || "300",
+      biddingStartTime: item.biddingStartTime || null,
+      biddingEndTime: item.biddingEndTime || null,
+      notes: item.notes || null,
       createdAt: now,
       updatedAt: now,
     };

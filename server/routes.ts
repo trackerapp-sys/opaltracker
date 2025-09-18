@@ -1,7 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertAuctionSchema } from "@shared/schema";
 import { auctionMonitor } from "./monitor";
 import { facebookScraper } from "./facebook-scraper";
 import { facebookWebhooks } from "./facebook-webhooks";
@@ -479,8 +478,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const newAuctionId = `AU${String(auctionCount + 1).padStart(4, '0')}`;
         
         // Create a basic auction with the detected bid
+        const now = new Date();
+        const endTime = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+        
         const newAuction = {
-          id: newAuctionId,
           opalType: 'Unknown', // Will be updated when user edits
           weight: 'Unknown',
           description: 'Auto-detected from Facebook post',
@@ -489,26 +490,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
           startingBid: currentBid.toString(),
           currentBid: currentBid.toString(),
           currentBidder: bidderName || 'Unknown',
-          startTime: new Date().toISOString(),
+          startTime: now,
           durationHours: '24',
           durationMinutes: '0',
-          endTime: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24 hours from now
-          status: 'active',
+          endTime: endTime,
+          status: 'active' as const,
           notes: 'Auto-created from Facebook bid detection',
-          isWatchlist: false,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
+          isWatchlist: false
         };
         
         try {
-          await storage.createAuction(newAuction);
-          auction = newAuction;
-          console.log(`✅ Auto-created auction ${newAuctionId} for URL: ${url}`);
+          const createdAuction = await storage.createAuction(newAuction);
+          auction = createdAuction;
+          console.log(`✅ Auto-created auction ${createdAuction.id} for URL: ${url}`);
         } catch (createError) {
           console.error('❌ Failed to auto-create auction:', createError);
           res.status(500).json({ success: false, message: 'Failed to auto-create auction' });
           return;
         }
+      }
+      
+      if (!auction) {
+        res.status(500).json({ success: false, message: 'Auction not found' });
+        return;
       }
       
       // Update the auction with the new bid

@@ -77,9 +77,7 @@ export class AutoMonitor {
         
         // Update the auction with new bid info
         await storage.updateAuction(auction.id, {
-          currentBid: newBid.toString(),
-          bidCount: bidCount,
-          lastUpdated: new Date().toISOString()
+          currentBid: newBid.toString()
         });
         
         console.log(`✅ Updated auction ${auction.id} with new bid: $${newBid}`);

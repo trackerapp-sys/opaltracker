@@ -106,8 +106,7 @@ export class AuctionMonitor {
             
             const updateResult = await storage.updateAuction(auction.id, {
               currentBid: highestBid.amount.toString(),
-              currentBidder: highestBid.bidderName,
-              lastUpdated: new Date().toISOString()
+              currentBidder: highestBid.bidderName
             });
             
             if (updateResult) {
