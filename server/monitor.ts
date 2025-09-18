@@ -24,8 +24,6 @@ export class AuctionMonitor {
     // Schedule to run every 3 minutes
     this.cronJob = cron.schedule('*/3 * * * *', async () => {
       await this.checkAllAuctions();
-    }, {
-      scheduled: false
     });
 
     this.cronJob.start();

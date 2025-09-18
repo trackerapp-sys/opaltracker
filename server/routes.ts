@@ -27,9 +27,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const currentSettings = await storage.getSettings();
         
         if (currentSettings.bidMonitoringEnabled) {
-          // Update the monitor interval if it's running
-          if (auctionMonitor.getStatus().running) {
-            auctionMonitor.updateInterval(currentSettings.bidCheckInterval);
+          // Start monitoring if enabled
+          if (!auctionMonitor.getStatus().running) {
+            auctionMonitor.start();
           }
         } else {
           // Stop monitoring if disabled
