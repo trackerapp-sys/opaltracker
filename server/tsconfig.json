@@ -9,7 +9,7 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "outDir": "../dist/server",
+    "outDir": "../dist",
     "rootDir": "..",
     "declaration": false,
     "sourceMap": false,
