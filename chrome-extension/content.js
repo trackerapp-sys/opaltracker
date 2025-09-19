@@ -224,6 +224,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Return true to indicate we will send a response asynchronously
     return true;
   }
+  
+  if (request.action === 'ping') {
+    console.log('📨 Received ping request');
+    sendResponse({ 
+      success: true, 
+      message: 'Extension is working!',
+      timestamp: new Date().toISOString(),
+      url: window.location.href
+    });
+    return true;
+  }
 });
 
 // Auto-detect groups when on Facebook groups page

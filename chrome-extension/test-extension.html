@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opal Tracker Extension Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        .warning { background-color: #fff3cd; color: #856404; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #6c757d; cursor: not-allowed; }
+        #results {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Opal Tracker Chrome Extension Test</h1>
+    
+    <div class="test-section">
+        <h2>📋 Extension Status Check</h2>
+        <div id="extensionStatus" class="status warning">Checking extension status...</div>
+        <button onclick="checkExtensionStatus()">Refresh Status</button>
+    </div>
+
+    <div class="test-section">
+        <h2>🎯 Group Detection Test</h2>
+        <p>This will test if the extension can detect Facebook groups from the current page.</p>
+        <button onclick="testGroupDetection()" id="detectBtn">Detect Groups</button>
+        <button onclick="clearResults()">Clear Results</button>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>🌐 Communication Test</h2>
+        <p>Test communication between the web app and Chrome extension.</p>
+        <button onclick="testCommunication()" id="commBtn">Test Communication</button>
+        <div id="commResults"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>📖 Instructions</h2>
+        <ol>
+            <li><strong>Install Extension:</strong> Go to <code>chrome://extensions/</code>, enable Developer mode, click "Load unpacked", select the chrome-extension folder</li>
+            <li><strong>Visit Facebook:</strong> Go to <a href="https://facebook.com/groups" target="_blank">facebook.com/groups</a></li>
+            <li><strong>Test Detection:</strong> Click "Detect Groups" button above</li>
+            <li><strong>Check Results:</strong> Look for detected groups in the results area</li>
+        </ol>
+    </div>
+
+    <script>
+        let results = document.getElementById('results');
+        let commResults = document.getElementById('commResults');
+        
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            results.textContent += `[${timestamp}] ${message}\n`;
+            results.scrollTop = results.scrollHeight;
+        }
+        
+        function logComm(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            commResults.innerHTML += `<div>[${timestamp}] ${message}</div>`;
+        }
+
+        function checkExtensionStatus() {
+            const statusDiv = document.getElementById('extensionStatus');
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Chrome extension API is available';
+                log('✅ Chrome extension API detected');
+            } else {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Chrome extension API not available - Extension not installed or not working';
+                log('❌ Chrome extension API not available');
+            }
+        }
+
+        function testGroupDetection() {
+            log('🎯 Starting group detection test...');
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                log('📨 Sending message to extension...');
+                
+                chrome.runtime.sendMessage({ action: 'detectGroups' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        log(`❌ Extension error: ${chrome.runtime.lastError.message}`);
+                    } else if (response) {
+                        log(`✅ Extension response received: ${JSON.stringify(response, null, 2)}`);
+                        
+                        if (response.success && response.groups && response.groups.length > 0) {
+                            log(`🎉 SUCCESS: Found ${response.groups.length} groups!`);
+                            response.groups.forEach((group, index) => {
+                                log(`  ${index + 1}. ${group.name} (${group.id})`);
+                            });
+                        } else {
+                            log('⚠️ No groups detected - make sure you\'re on Facebook groups page');
+                        }
+                    } else {
+                        log('❌ No response from extension');
+                    }
+                });
+            } else {
+                log('❌ Chrome extension not available');
+            }
+        }
+
+        function testCommunication() {
+            logComm('🔄 Testing communication...');
+            
+            if (typeof chrome !== 'undefined' && chrome.runtime) {
+                logComm('✅ Chrome extension API available');
+                
+                // Test basic communication
+                chrome.runtime.sendMessage({ action: 'ping' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        logComm(`❌ Error: ${chrome.runtime.lastError.message}`);
+                    } else {
+                        logComm(`✅ Communication successful: ${JSON.stringify(response)}`);
+                    }
+                });
+            } else {
+                logComm('❌ Chrome extension not available');
+            }
+        }
+
+        function clearResults() {
+            results.textContent = '';
+            commResults.innerHTML = '';
+        }
+
+        // Auto-check extension status on load
+        window.addEventListener('load', () => {
+            setTimeout(checkExtensionStatus, 1000);
+        });
+    </script>
+</body>
+</html>
