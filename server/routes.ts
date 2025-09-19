@@ -57,6 +57,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Opal types management endpoints
+  app.get("/api/settings/opal-types", async (req, res) => {
+    try {
+      const settings = await storage.getSettings();
+      res.json({ opalTypes: settings.opalTypes || [] });
+    } catch (error) {
+      console.error("Error fetching opal types:", error);
+      res.status(500).json({ message: "Failed to fetch opal types" });
+    }
+  });
+
+  app.post("/api/settings/opal-types", async (req, res) => {
+    try {
+      const { opalTypes } = req.body;
+      const currentSettings = await storage.getSettings();
+      const updatedSettings = { ...currentSettings, opalTypes };
+      const savedSettings = await storage.saveSettings(updatedSettings);
+      res.json({ opalTypes: savedSettings.opalTypes });
+    } catch (error) {
+      console.error("Error updating opal types:", error);
+      res.status(500).json({ message: "Failed to update opal types" });
+    }
+  });
+
   // Payment methods endpoints
   app.get("/api/settings/payment-methods", async (req, res) => {
     try {
