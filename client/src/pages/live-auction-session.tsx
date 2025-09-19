@@ -302,60 +302,26 @@ export default function LiveAuctionSession() {
   const handleDetectGroups = async () => {
     console.log('🎯 Detect Groups button clicked!');
     
-    // Check if Chrome extension is available
-    if (typeof chrome !== 'undefined' && chrome.runtime) {
-      console.log('🎯 Chrome extension available, requesting group detection...');
-      
-      try {
-        // Send message to Chrome extension to detect groups
-        chrome.runtime.sendMessage({ action: 'detectGroups' }, (response) => {
-          if (chrome.runtime.lastError) {
-            console.error('Chrome extension error:', chrome.runtime.lastError);
-            toast({
-              title: "Extension Error",
-              description: "Could not communicate with Chrome extension. Please install the Opal Tracker extension.",
-              variant: "destructive",
-              duration: 4000,
-            });
-          } else if (response && response.success && response.groups && response.groups.length > 0) {
-            console.log('✅ Groups detected by extension:', response.groups);
-            setFacebookGroups(response.groups);
-            
-            toast({
-              title: "Groups Detected Automatically!",
-              description: `Found ${response.groups.length} Facebook groups`,
-              variant: "default",
-              duration: 3000,
-            });
-          } else {
-            console.log('❌ No groups detected by extension');
-            toast({
-              title: "No Groups Detected",
-              description: "Make sure you're on Facebook and have the Opal Tracker extension installed. Try refreshing Facebook first.",
-              variant: "destructive",
-              duration: 5000,
-            });
-          }
-        });
-      } catch (error) {
-        console.error('Error communicating with Chrome extension:', error);
-        toast({
-          title: "Extension Error",
-          description: "Could not communicate with Chrome extension. Please install the Opal Tracker extension.",
-          variant: "destructive",
-          duration: 4000,
-        });
-      }
-    } else {
-      console.log('🎯 Chrome extension not available');
-      
-      toast({
-        title: "Chrome Extension Required",
-        description: "Please install the Opal Tracker Chrome extension to automatically detect your Facebook groups.",
-        variant: "destructive",
-        duration: 5000,
-      });
-    }
+    // Simple approach: Use your actual Facebook groups
+    const yourGroups = [
+      { id: 'app_testing_group', name: 'App Testing Group' },
+      { id: 'opal_sales_australia', name: 'Opal Sales Australia' },
+      { id: 'australian_opal_traders', name: 'Australian Opal Traders' },
+      { id: 'australian_opal_trading_post', name: 'Australian Opal Trading Post' },
+      { id: 'opal_auctions', name: 'Opal Auctions' },
+      { id: 'russells_unique_deals', name: "Russell's Unique Deals" },
+      { id: 'canadiandollarbingo_friends', name: 'CanadianDollarBingo Friends' }
+    ];
+    
+    console.log('✅ Loading your Facebook groups:', yourGroups);
+    setFacebookGroups(yourGroups);
+    
+    toast({
+      title: "Groups Loaded!",
+      description: `Found ${yourGroups.length} Facebook groups`,
+      variant: "default",
+      duration: 3000,
+    });
   };
 
   const onSubmit = async (data: LiveAuctionSessionForm) => {
@@ -639,15 +605,15 @@ export default function LiveAuctionSession() {
                           onClick={handleDetectGroups}
                           disabled={isLoadingGroups}
                         >
-                          <RefreshCw className={`h-4 w-4 ${isLoadingGroups ? 'animate-spin' : ''}`} />
+                          Load My Groups
                         </Button>
                       </div>
-                      <div className="text-xs text-muted-foreground">
-                        {facebookGroups.length > 0 
-                          ? `✅ Found ${facebookGroups.length} Facebook groups automatically`
-                          : "Click refresh to automatically detect your Facebook groups using the Chrome extension"
-                        }
-                      </div>
+                <div className="text-xs text-muted-foreground">
+                  {facebookGroups.length > 0 
+                    ? `✅ Found ${facebookGroups.length} Facebook groups`
+                    : "Click 'Load My Groups' to populate your Facebook groups"
+                  }
+                </div>
                       
                       
                       <FormMessage />
