@@ -106,7 +106,7 @@ app.post('/api/bid-updates', (req, res) => {
     });
   }
   
-  // Update the auction in fallback storage
+  // First try to find in individual auctions
   const auctionIndex = fallbackStorage.auctions.findIndex(a => a.id === auctionId);
   if (auctionIndex !== -1) {
     const auction = fallbackStorage.auctions[auctionIndex];
@@ -135,7 +135,7 @@ app.post('/api/bid-updates', (req, res) => {
     fallbackStorage.auctions[auctionIndex].currentBidder = bidderName || 'Unknown';
     fallbackStorage.auctions[auctionIndex].updatedAt = new Date().toISOString();
     
-    console.log('✅ Auction updated:', fallbackStorage.auctions[auctionIndex]);
+    console.log('✅ Individual auction updated:', fallbackStorage.auctions[auctionIndex]);
     
     res.json({
       success: true,
@@ -143,11 +143,72 @@ app.post('/api/bid-updates', (req, res) => {
       auction: fallbackStorage.auctions[auctionIndex]
     });
   } else {
-    console.log('❌ Auction not found:', auctionId);
-    res.status(404).json({ 
-      error: 'Auction not found',
-      auctionId: auctionId
-    });
+    // Try to find in live auction items
+    console.log('🔍 Checking live auction items for auctionId:', auctionId);
+    
+    // Look through all live auctions and their items
+    let foundItem = null;
+    let foundLiveAuction = null;
+    let foundItemIndex = -1;
+    let foundLiveAuctionIndex = -1;
+    
+    for (let i = 0; i < fallbackStorage.liveAuctions.length; i++) {
+      const liveAuction = fallbackStorage.liveAuctions[i];
+      if (liveAuction.items) {
+        for (let j = 0; j < liveAuction.items.length; j++) {
+          if (liveAuction.items[j].id === auctionId) {
+            foundItem = liveAuction.items[j];
+            foundLiveAuction = liveAuction;
+            foundItemIndex = j;
+            foundLiveAuctionIndex = i;
+            break;
+          }
+        }
+      }
+      if (foundItem) break;
+    }
+    
+    if (foundItem && foundLiveAuction) {
+      const newBidAmount = parseFloat(currentBid);
+      const currentBidAmount = parseFloat(foundItem.currentBid || foundItem.startingBid || '0');
+      const bidIncrement = parseFloat(foundItem.bidIncrements || '1');
+      
+      // Check if bid meets minimum increment
+      const minimumBid = currentBidAmount + bidIncrement;
+      if (newBidAmount < minimumBid) {
+        console.log(`❌ Live auction bid rejected: $${newBidAmount} by ${bidderName} - below minimum increment of $${bidIncrement}`);
+        return res.status(400).json({
+          error: 'Bid rejected - below minimum increment',
+          details: {
+            currentBid: currentBidAmount,
+            newBid: newBidAmount,
+            minimumRequired: minimumBid,
+            bidIncrement: bidIncrement,
+            bidder: bidderName
+          }
+        });
+      }
+      
+      // Update live auction item with new bid
+      fallbackStorage.liveAuctions[foundLiveAuctionIndex].items[foundItemIndex].currentBid = currentBid;
+      fallbackStorage.liveAuctions[foundLiveAuctionIndex].items[foundItemIndex].currentBidder = bidderName || 'Unknown';
+      fallbackStorage.liveAuctions[foundLiveAuctionIndex].items[foundItemIndex].updatedAt = new Date().toISOString();
+      fallbackStorage.liveAuctions[foundLiveAuctionIndex].updatedAt = new Date().toISOString();
+      
+      console.log('✅ Live auction item updated:', fallbackStorage.liveAuctions[foundLiveAuctionIndex].items[foundItemIndex]);
+      
+      res.json({
+        success: true,
+        message: 'Live auction bid update processed successfully',
+        auction: fallbackStorage.liveAuctions[foundLiveAuctionIndex].items[foundItemIndex]
+      });
+    } else {
+      console.log('❌ Auction not found in individual auctions or live auction items:', auctionId);
+      res.status(404).json({ 
+        error: 'Auction not found',
+        auctionId: auctionId
+      });
+    }
   }
 });
 

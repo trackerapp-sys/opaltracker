@@ -72,26 +72,7 @@ export default function Auctions() {
     refetchOnWindowFocus: true, // Refresh when user returns to tab
   });
 
-  // Auto-switch to "ended" tab when an auction ends
-  useEffect(() => {
-    if (data?.auctions) {
-      // Check if we're on the active tab and there are no active auctions
-      if (activeTab === "active" && data.auctions.length === 0) {
-        // Check if there are any ended auctions by fetching all auctions
-        fetch("/api/auctions?status=ended&limit=1")
-          .then(response => response.json())
-          .then(result => {
-            if (result.auctions && result.auctions.length > 0) {
-              console.log("🔄 Auto-switching to Past Auctions tab - auction has ended");
-              setActiveTab("ended");
-            }
-          })
-          .catch(error => {
-            console.error("Error checking for ended auctions:", error);
-          });
-      }
-    }
-  }, [data?.auctions, activeTab]);
+  // Removed auto-switching logic - users should manually switch tabs
 
   const totalPages = Math.ceil((data?.total || 0) / limit);
 
