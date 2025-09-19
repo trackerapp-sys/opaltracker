@@ -151,8 +151,6 @@ export default function LiveAuctionSession() {
     }
   };
 
-  };
-
   // Function to detect Facebook groups using Chrome extension
   const detectFacebookGroups = async () => {
     setIsDetectingGroups(true);
