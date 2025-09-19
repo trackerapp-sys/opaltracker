@@ -329,8 +329,9 @@ export default function LiveAuctionSession() {
     console.log('🎯 Form submitted with data:', data);
     console.log('🎯 Facebook Group:', data.facebookGroup);
     console.log('🎯 Post URL:', data.postUrl);
-    console.log('🎯 Form errors:', form.formState.errors);
+    console.log('🎯 Form errors:', JSON.stringify(form.formState.errors, null, 2));
     console.log('🎯 Form is valid:', form.formState.isValid);
+    console.log('🎯 Form values:', JSON.stringify(form.getValues(), null, 2));
     
     // Force submission even if validation fails
     try {
