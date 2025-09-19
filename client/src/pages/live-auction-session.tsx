@@ -326,22 +326,8 @@ export default function LiveAuctionSession() {
 
   const onSubmit = async (data: LiveAuctionSessionForm) => {
     console.log('🎯 Form submitted with data:', data);
-    console.log('🎯 Form errors:', form.formState.errors);
-    console.log('🎯 Form is valid:', form.formState.isValid);
     console.log('🎯 Facebook Group:', data.facebookGroup);
     console.log('🎯 Post URL:', data.postUrl);
-    
-    // Check if form has validation errors
-    if (Object.keys(form.formState.errors).length > 0) {
-      console.log('❌ Form has validation errors, not submitting');
-      console.log('❌ Validation errors:', form.formState.errors);
-      toast({
-        title: "Validation Error",
-        description: "Please fill in all required fields",
-        variant: "destructive",
-      });
-      return;
-    }
     
     try {
       createLiveAuctionMutation.mutate(data);
