@@ -245,7 +245,7 @@ export default function Help() {
                 <AccordionContent>
                   <p className="text-sm text-muted-foreground">
                     <strong>Individual Auctions:</strong> Single opal items posted separately to Facebook groups with individual monitoring.<br/>
-                    <strong>Live Auctions:</strong> Multiple items managed in sequence during a live session with automatic progression and timers.
+                    <strong>Live Auctions:</strong> Multiple items managed in sequence during a live session with automatic Facebook bid detection and progression timers.
                   </p>
                 </AccordionContent>
               </AccordionItem>
@@ -274,8 +274,13 @@ export default function Help() {
                 <AccordionTrigger>How do I control a live auction session?</AccordionTrigger>
                 <AccordionContent>
                   <p className="text-sm text-muted-foreground">
-                    Use the Live Auction Control panel to: start/pause individual items, manually advance to the next item, 
-                    track current bids and bidders, and monitor the overall session progress. Each item has its own timer and bidding duration.
+                    <strong>Live Auctions work like Individual Auctions but for multiple items:</strong><br/>
+                    • Create a live auction session with Facebook group and post URL<br/>
+                    • Add multiple items to the session<br/>
+                    • Post the live auction to Facebook<br/>
+                    • Chrome extension automatically detects bids from comments<br/>
+                    • Use Live Auction Control to manage item progression and timing<br/>
+                    • Each item has its own timer and bidding duration
                   </p>
                 </AccordionContent>
               </AccordionItem>

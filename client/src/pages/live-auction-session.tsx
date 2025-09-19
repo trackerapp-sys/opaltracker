@@ -27,14 +27,15 @@ declare global {
 const liveAuctionSessionSchema = z.object({
   title: z.string().min(1, "Auction title is required"),
   description: z.string().optional(),
-  facebookGroup: z.string().optional(), // Made optional for testing
-  postUrl: z.string().optional(),
+  facebookGroup: z.string().min(1, "Facebook group is required"), // Required for bid detection
+  postUrl: z.string().url().optional().or(z.literal("")), // Facebook post URL for bid detection
   startTime: z.string().min(1, "Start time is required"),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(1440, "Duration cannot exceed 24 hours"),
   status: z.enum(["scheduled", "active", "ended"]).default("scheduled"),
   postToFacebook: z.boolean().default(false),
   images: z.array(z.instanceof(File)).optional(),
   videos: z.array(z.instanceof(File)).optional(),
+  enableBidDetection: z.boolean().default(true), // Enable automatic bid detection
 });
 
 type LiveAuctionSessionForm = z.infer<typeof liveAuctionSessionSchema>;
@@ -71,6 +72,7 @@ export default function LiveAuctionSession() {
       postToFacebook: false,
       images: [],
       videos: [],
+      enableBidDetection: true, // Enable bid detection by default
     },
   });
 
@@ -394,6 +396,9 @@ export default function LiveAuctionSession() {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Facebook Group *</FormLabel>
+                        <FormDescription>
+                          Required for bid detection: Select the Facebook group where you'll post the live auction
+                        </FormDescription>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
                             <SelectTrigger>
@@ -436,7 +441,7 @@ export default function LiveAuctionSession() {
                           />
                         </FormControl>
                         <FormDescription>
-                          Optional: Link to your Facebook post
+                          Required for bid detection: Link to your Facebook post where bids will be monitored
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -460,6 +465,29 @@ export default function LiveAuctionSession() {
                           </FormLabel>
                           <FormDescription>
                             Automatically post this live auction to the selected Facebook group
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="enableBidDetection"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                            Enable automatic bid detection
+                          </FormLabel>
+                          <FormDescription>
+                            Automatically detect bids from Facebook comments using Chrome extension
                           </FormDescription>
                         </div>
                       </FormItem>
