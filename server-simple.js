@@ -281,12 +281,17 @@ app.post('/api/settings/opal-types', (req, res) => {
 
 // Fallback: Add basic auction endpoints
 app.get('/api/auctions', (req, res) => {
+  console.log('📋 Fetching auctions, count:', fallbackStorage.auctions.length);
+  if (fallbackStorage.auctions.length > 0) {
+    console.log('📋 First auction reserve price:', fallbackStorage.auctions[0].reservePrice);
+  }
   res.json({ auctions: fallbackStorage.auctions, total: fallbackStorage.auctions.length });
 });
 
 app.post('/api/auctions', (req, res) => {
   console.log('🎯 Creating new auction with data:', req.body);
   console.log('🎯 Reserve price received:', req.body.reservePrice);
+  console.log('🎯 Starting bid received:', req.body.startingBid);
   
   const newAuction = {
     id: 'AU' + String(Date.now()).slice(-4),
@@ -296,6 +301,7 @@ app.post('/api/auctions', (req, res) => {
   };
   
   console.log('🎯 New auction created:', newAuction);
+  console.log('🎯 Reserve price in created auction:', newAuction.reservePrice);
   fallbackStorage.auctions.push(newAuction);
   res.status(201).json(newAuction);
 });
