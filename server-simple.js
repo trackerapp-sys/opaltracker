@@ -10,6 +10,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Force redeployment timestamp
+console.log('🔄 Server restarted at:', new Date().toISOString());
+
 // Simple in-memory storage for fallback endpoints
 const fallbackStorage = {
   settings: {
