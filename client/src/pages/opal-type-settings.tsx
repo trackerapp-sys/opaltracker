@@ -3,8 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Trash2, Plus, Save } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Trash2, Plus, Edit, Gem } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 interface OpalTypeSettings {
@@ -13,6 +15,9 @@ interface OpalTypeSettings {
 
 export default function OpalTypeSettings() {
   const [newOpalType, setNewOpalType] = useState("");
+  const [editingOpalType, setEditingOpalType] = useState<{ oldName: string; newName: string } | null>(null);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const queryClient = useQueryClient();
 
   // Fetch current opal types
@@ -44,6 +49,10 @@ export default function OpalTypeSettings() {
         title: "Success",
         description: "Opal types updated successfully",
       });
+      setIsAddDialogOpen(false);
+      setIsEditDialogOpen(false);
+      setNewOpalType("");
+      setEditingOpalType(null);
     },
     onError: (error) => {
       toast({
@@ -69,19 +78,37 @@ export default function OpalTypeSettings() {
 
     const updatedTypes = [...currentTypes, newOpalType.trim()];
     updateOpalTypesMutation.mutate(updatedTypes);
-    setNewOpalType("");
   };
 
-  const handleRemoveOpalType = (typeToRemove: string) => {
+  const handleEditOpalType = (opalType: string) => {
+    setEditingOpalType({ oldName: opalType, newName: opalType });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateOpalType = () => {
+    if (!editingOpalType) return;
+    
     const currentTypes = settings?.opalTypes || [];
-    const updatedTypes = currentTypes.filter(type => type !== typeToRemove);
+    const otherTypes = currentTypes.filter(type => type !== editingOpalType.oldName);
+    
+    if (otherTypes.includes(editingOpalType.newName.trim())) {
+      toast({
+        title: "Duplicate",
+        description: "This opal type name already exists",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const updatedTypes = [...otherTypes, editingOpalType.newName.trim()];
     updateOpalTypesMutation.mutate(updatedTypes);
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      handleAddOpalType();
+  const handleRemoveOpalType = (typeToRemove: string) => {
+    if (window.confirm(`Are you sure you want to delete "${typeToRemove}"?`)) {
+      const currentTypes = settings?.opalTypes || [];
+      const updatedTypes = currentTypes.filter(type => type !== typeToRemove);
+      updateOpalTypesMutation.mutate(updatedTypes);
     }
   };
 
@@ -107,55 +134,87 @@ export default function OpalTypeSettings() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Available Opal Types</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <Gem className="w-5 h-5" />
+            Available Opal Types
+          </CardTitle>
           <CardDescription>
-            Add, remove, or modify opal types that appear in dropdowns across the application.
+            Add, edit, or remove opal types that appear in dropdowns across the application.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Add new opal type */}
-          <div className="flex gap-2">
-            <div className="w-80">
-              <Label htmlFor="new-opal-type">Add New Opal Type</Label>
-              <Input
-                id="new-opal-type"
-                value={newOpalType}
-                onChange={(e) => setNewOpalType(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder="Enter opal type name..."
-                className="mt-1"
-              />
-            </div>
-            <div className="flex items-end">
-              <Button 
-                onClick={handleAddOpalType}
-                disabled={!newOpalType.trim() || updateOpalTypesMutation.isPending}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add
-              </Button>
-            </div>
+          {/* Add new opal type button */}
+          <div className="flex justify-end">
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Opal Type
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Opal Type</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="opal-type-name">Opal Type Name *</Label>
+                    <Input
+                      id="opal-type-name"
+                      value={newOpalType}
+                      onChange={(e) => setNewOpalType(e.target.value)}
+                      placeholder="e.g., Black Opal, Crystal Opal, Boulder Opal"
+                      className="mt-1"
+                    />
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAddOpalType}
+                      disabled={!newOpalType.trim() || updateOpalTypesMutation.isPending}
+                    >
+                      {updateOpalTypesMutation.isPending ? "Adding..." : "Add Opal Type"}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
 
           {/* Current opal types */}
           <div>
             <Label className="text-sm font-medium">Current Opal Types ({settings?.opalTypes?.length || 0})</Label>
-            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+            <div className="mt-2 space-y-2">
               {(settings?.opalTypes || []).map((type) => (
                 <div
                   key={type}
-                  className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                  className="flex items-center justify-between p-4 bg-muted rounded-lg border"
                 >
-                  <span className="text-sm font-medium">{type}</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleRemoveOpalType(type)}
-                    disabled={updateOpalTypesMutation.isPending}
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  <div className="flex-1">
+                    <div className="font-medium text-foreground">{type}</div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditOpalType(type)}
+                      disabled={updateOpalTypesMutation.isPending}
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleRemoveOpalType(type)}
+                      disabled={updateOpalTypesMutation.isPending}
+                      className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -163,6 +222,7 @@ export default function OpalTypeSettings() {
 
           {(!settings?.opalTypes || settings.opalTypes.length === 0) && (
             <div className="text-center py-8 text-muted-foreground">
+              <Gem className="w-16 h-16 mx-auto mb-4 text-muted-foreground" />
               <p>No opal types configured yet.</p>
               <p className="text-sm mt-1">Add your first opal type above.</p>
             </div>
@@ -170,6 +230,41 @@ export default function OpalTypeSettings() {
         </CardContent>
       </Card>
 
+      {/* Edit Opal Type Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Opal Type</DialogTitle>
+          </DialogHeader>
+          {editingOpalType && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-opal-type-name">Opal Type Name *</Label>
+                <Input
+                  id="edit-opal-type-name"
+                  value={editingOpalType.newName}
+                  onChange={(e) => setEditingOpalType(prev => 
+                    prev ? { ...prev, newName: e.target.value } : null
+                  )}
+                  placeholder="e.g., Black Opal, Crystal Opal, Boulder Opal"
+                  className="mt-1"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleUpdateOpalType}
+                  disabled={!editingOpalType.newName.trim() || updateOpalTypesMutation.isPending}
+                >
+                  {updateOpalTypesMutation.isPending ? "Updating..." : "Update Opal Type"}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

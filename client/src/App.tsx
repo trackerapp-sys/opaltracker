@@ -17,6 +17,7 @@ import LiveAuctionControl from "@/pages/live-auction-control";
 import BulkImport from "@/pages/bulk-import";
 import Settings from "@/pages/settings";
 import OpalTypeSettings from "@/pages/opal-type-settings";
+import PaymentMethodsSettings from "@/pages/payment-methods-settings";
 import Help from "@/pages/help";
 import Monitor from "@/pages/monitor";
 import DevTesting from "@/pages/dev-testing";
@@ -41,6 +42,7 @@ function Router() {
           <Route path="/bulk-import" component={BulkImport} />
           <Route path="/settings" component={Settings} />
           <Route path="/opal-type-settings" component={OpalTypeSettings} />
+          <Route path="/payment-methods-settings" component={PaymentMethodsSettings} />
           <Route path="/help" component={Help} />
           <Route path="/monitor" component={Monitor} />
           {process.env.NODE_ENV === 'development' && <Route path="/dev-testing" component={DevTesting} />}
