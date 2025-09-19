@@ -77,8 +77,8 @@ function isValidName(name) {
   
   // Clean the name - remove Facebook UI artifacts but preserve valid names
   let cleanName = name.trim()
-    .replace(/^(Like|Reply|Share|Edit|Delete|Remove|Facebook|Loading|Error|Unknown|bidder|Bidder|BIDDER|UNKNOWN|unknown)\s*/i, '') // Remove leading UI words
-    .replace(/\s*(Like|Reply|Share|Edit|Delete|Remove|Facebook|Loading|Error|Unknown|bidder|Bidder|BIDDER|UNKNOWN|unknown)$/i, '') // Remove trailing UI words
+    .replace(/^(Like|Reply|Share|Edit|Delete|Remove|Facebook|Loading|Error|Unknown|bidder|Bidder|BIDDER|UNKNOWN|unknown|Advertiser|Open|menu|Learn|More)\s*/i, '') // Remove leading UI words
+    .replace(/\s*(Like|Reply|Share|Edit|Delete|Remove|Facebook|Loading|Error|Unknown|bidder|Bidder|BIDDER|UNKNOWN|unknown|Advertiser|Open|menu|Learn|More)$/i, '') // Remove trailing UI words
     .replace(/\s+/g, ' ') // Normalize spaces
     .trim();
   
@@ -103,9 +103,9 @@ function isValidName(name) {
     const lastPart = cleanName.match(/[A-Z][a-z]+$/)[0];
     if (firstPart.length < 2 || lastPart.length < 2) return false;
   } else {
-  // Each part must be at least 2 characters
-  for (const part of nameParts) {
-    if (part.length < 2) return false;
+    // Each part must be at least 2 characters
+    for (const part of nameParts) {
+      if (part.length < 2) return false;
     }
   }
   
@@ -116,7 +116,9 @@ function isValidName(name) {
     'international shipping', 'within Australia', 'shipping', 'postage', 'pickup',
     'Dubbo', 'Australia', 'international', 'within', 'From just', 'Pick up',
     'readSee previous notifications', 'notifications', 'unread chats', 'new messages',
-    'Save Up To', 'deserve please call us on', 'up and get back up to cloud'
+    'Save Up To', 'deserve please call us on', 'up and get back up to cloud',
+    'Advertiser', 'Open menu', 'Learn More', 'McGrath Property', 'Agentsmcgrath',
+    'Property Agents', 'com.au', 'March', '2024', '2023', '2022', '2021', '2020'
   ];
   
   for (const pattern of rejectPatterns) {
@@ -337,8 +339,17 @@ function setupRealTimeMonitoring() {
           if (node.nodeType === Node.ELEMENT_NODE) {
             const text = node.textContent || '';
             
-            // Log all new content for debugging
-            if (text.length > 10 && text.length < 500) {
+            // Log all new content for debugging - but filter out obvious non-bid content
+            if (text.length > 10 && text.length < 500 && 
+                !text.includes('Advertiser') && 
+                !text.includes('Open menu') && 
+                !text.includes('Learn More') &&
+                !text.includes('McGrath Property') &&
+                !text.includes('FacebookFacebook') &&
+                !text.includes('com.au') &&
+                !text.includes('March 2024') &&
+                !text.includes('static.xx.fbcdn.net') &&
+                !text.includes('rsrc.php')) {
               console.log('🔄 New content detected:', text.substring(0, 100) + '...');
               newContentFound = true;
             }
@@ -362,14 +373,13 @@ function setupRealTimeMonitoring() {
               shouldScan = true;
             }
             
-            // Check for various bid patterns
+            // Check for various bid patterns - more precise to avoid false positives
     const bidPatterns = [
-              /\d{2,4}(?:\.\d{1,2})?\d{1,2}[dhmwy]LikeReplyShare/,  // Full concatenated format
-              /\d{2,4}(?:\.\d{1,2})?\d{1,2}[dhmwy]LikeReply/,  // Partial format (missing Share)
-              /\d{2,4}(?:\.\d{1,2})?\s*\d+[dhmwy]\s*LikeReplyShare/,  // With spaces
-              /\d{2,4}(?:\.\d{1,2})?\s*\d+[dhmwy]\s*LikeReply/,  // Partial with spaces
-              /[A-Za-z]+\s*[A-Za-z]+\s*\d{2,4}(?:\.\d{1,2})?/,  // Name Amount format
-              /\$\d{2,4}(?:\.\d{1,2})?/  // Dollar sign format
+              // Only detect patterns that look like actual Facebook comments with bids
+              /[A-Za-z][A-Za-z\s\-']{3,30}[A-Za-z]\d{2,4}(?:\.\d{1,2})?\d{1,2}[dhmwy]LikeReplyShare/,  // Full concatenated format with name
+              /[A-Za-z][A-Za-z\s\-']{3,30}[A-Za-z]\d{2,4}(?:\.\d{1,2})?\d{1,2}[dhmwy]LikeReply/,  // Partial format with name
+              /\$\d{2,4}(?:\.\d{1,2})?\s*[A-Za-z][A-Za-z\s\-']{3,30}[A-Za-z]/,  // Dollar sign with name
+              /[A-Za-z][A-Za-z\s\-']{3,30}[A-Za-z]\s+\d{2,4}(?:\.\d{1,2})?\s+\d+[dhmwy]/  // Name Amount Time format
             ];
             
             // If new content contains potential bid patterns, scan immediately
@@ -469,17 +479,16 @@ function scanPassively() {
     
     // Check if Facebook is still loading critical components
     const loadingElements = document.querySelectorAll('[aria-label*="Loading"], [data-testid*="loading"], .loading');
-    if (loadingElements.length > 5) {
+    if (loadingElements.length > 10) { // Increased threshold from 5 to 10
       console.log('🕐 PASSIVE SCAN: Facebook still loading, skipping...');
       return false;
     }
     
-    // Only read text content - never modify anything
+    // Additional check: if page has very little content, it's still loading
     const pageText = document.body.textContent || '';
-    
-    if (pageText.length < 1000) {
+    if (pageText.length < 2000) { // Increased threshold from 1000 to 2000
       console.log('🕐 PASSIVE SCAN: Page text too short, skipping...');
-      return;
+      return false;
     }
     
     // Focused bid patterns - only the most reliable Facebook comment formats
