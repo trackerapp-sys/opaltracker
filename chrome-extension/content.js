@@ -5,7 +5,7 @@ console.log('📅 TIMESTAMP:', new Date().toISOString());
 console.log('🌐 CURRENT URL:', window.location.href);
 console.log('📄 PAGE TITLE:', document.title);
 
-let trackerUrl = 'http://localhost:5000';
+let trackerUrl = 'https://opaltracker.onrender.com';
 let lastHighestBid = 0;
 let isScanning = false;
 let bidHistory = []; // Track all bids found
@@ -773,7 +773,7 @@ function sendToTracker(amount, bidder) {
         });
       } else {
         // Fallback to direct fetch
-        const response = await fetch('http://localhost:5000/api/bid-updates', {
+        const response = await fetch('https://opaltracker.onrender.com/api/bid-updates', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
