@@ -5,7 +5,18 @@ console.log('📅 TIMESTAMP:', new Date().toISOString());
 console.log('🌐 CURRENT URL:', window.location.href);
 console.log('📄 PAGE TITLE:', document.title);
 
-let trackerUrl = 'https://opaltracker.onrender.com';
+// Auto-detect tracker URL based on environment
+let trackerUrl = 'https://opaltracker.onrender.com'; // Default to deployed
+
+// Check if we're in development mode (you can change this)
+const isDevelopment = false; // Set to true for local testing
+
+if (isDevelopment) {
+  trackerUrl = 'http://localhost:5000';
+  console.log('🔧 DEVELOPMENT MODE: Using local tracker at', trackerUrl);
+} else {
+  console.log('🚀 PRODUCTION MODE: Using deployed tracker at', trackerUrl);
+}
 let lastHighestBid = 0;
 let isScanning = false;
 let bidHistory = []; // Track all bids found
@@ -773,7 +784,7 @@ function sendToTracker(amount, bidder) {
         });
       } else {
         // Fallback to direct fetch
-        const response = await fetch('https://opaltracker.onrender.com/api/bid-updates', {
+        const response = await fetch(`${trackerUrl}/api/bid-updates`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
