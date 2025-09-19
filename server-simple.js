@@ -212,116 +212,108 @@ app.post('/api/bid-updates', (req, res) => {
   }
 });
 
-// Import and register all API routes
-try {
-  const { registerRoutes } = await import('./server/routes.js');
-  const server = await registerRoutes(app);
-  console.log('✅ API routes registered successfully');
-} catch (error) {
-  console.error('❌ Failed to register API routes:', error);
-  
-  // Fallback: Add basic settings endpoint
-  app.get('/api/settings', (req, res) => {
-    res.json(fallbackStorage.settings);
-  });
-  
-  app.post('/api/settings', (req, res) => {
-    // Update settings with new data
-    fallbackStorage.settings = { ...fallbackStorage.settings, ...req.body };
-    res.json(fallbackStorage.settings);
-  });
+// Using fallback API endpoints only - no TypeScript routes import needed
+console.log('✅ Using fallback API endpoints');
 
-  // Fallback: Add payment methods endpoints
-  app.get('/api/settings/payment-methods', (req, res) => {
-    res.json(fallbackStorage.paymentMethods);
-  });
+// Fallback: Add basic settings endpoint
+app.get('/api/settings', (req, res) => {
+  res.json(fallbackStorage.settings);
+});
 
-  app.post('/api/settings/payment-methods', (req, res) => {
-    const newPaymentMethod = {
-      id: 'pm_' + Date.now(),
-      name: req.body.name || 'New Payment Method',
+app.post('/api/settings', (req, res) => {
+  // Update settings with new data
+  fallbackStorage.settings = { ...fallbackStorage.settings, ...req.body };
+  res.json(fallbackStorage.settings);
+});
+
+// Fallback: Add payment methods endpoints
+app.get('/api/settings/payment-methods', (req, res) => {
+  res.json(fallbackStorage.paymentMethods);
+});
+
+app.post('/api/settings/payment-methods', (req, res) => {
+  const newPaymentMethod = {
+    id: 'pm_' + Date.now(),
+    name: req.body.name || 'New Payment Method',
+    description: req.body.description || ''
+  };
+  fallbackStorage.paymentMethods.push(newPaymentMethod);
+  res.status(201).json(newPaymentMethod);
+});
+
+app.put('/api/settings/payment-methods/:id', (req, res) => {
+  const index = fallbackStorage.paymentMethods.findIndex(pm => pm.id === req.params.id);
+  if (index !== -1) {
+    fallbackStorage.paymentMethods[index] = {
+      id: req.params.id,
+      name: req.body.name || 'Updated Payment Method',
       description: req.body.description || ''
     };
-    fallbackStorage.paymentMethods.push(newPaymentMethod);
-    res.status(201).json(newPaymentMethod);
-  });
+    res.json(fallbackStorage.paymentMethods[index]);
+  } else {
+    res.status(404).json({ message: 'Payment method not found' });
+  }
+});
 
-  app.put('/api/settings/payment-methods/:id', (req, res) => {
-    const index = fallbackStorage.paymentMethods.findIndex(pm => pm.id === req.params.id);
-    if (index !== -1) {
-      fallbackStorage.paymentMethods[index] = {
-        id: req.params.id,
-        name: req.body.name || 'Updated Payment Method',
-        description: req.body.description || ''
-      };
-      res.json(fallbackStorage.paymentMethods[index]);
-    } else {
-      res.status(404).json({ message: 'Payment method not found' });
-    }
-  });
+app.delete('/api/settings/payment-methods/:id', (req, res) => {
+  const index = fallbackStorage.paymentMethods.findIndex(pm => pm.id === req.params.id);
+  if (index !== -1) {
+    fallbackStorage.paymentMethods.splice(index, 1);
+    res.status(204).send();
+  } else {
+    res.status(404).json({ message: 'Payment method not found' });
+  }
+});
 
-  app.delete('/api/settings/payment-methods/:id', (req, res) => {
-    const index = fallbackStorage.paymentMethods.findIndex(pm => pm.id === req.params.id);
-    if (index !== -1) {
-      fallbackStorage.paymentMethods.splice(index, 1);
-      res.status(204).send();
-    } else {
-      res.status(404).json({ message: 'Payment method not found' });
-    }
+// Fallback: Add opal types endpoints
+app.get('/api/settings/opal-types', (req, res) => {
+  res.json({
+    opalTypes: fallbackStorage.settings.opalTypes
   });
+});
 
-  // Fallback: Add opal types endpoints
-  app.get('/api/settings/opal-types', (req, res) => {
-    res.json({
-      opalTypes: fallbackStorage.settings.opalTypes
-    });
-  });
+app.post('/api/settings/opal-types', (req, res) => {
+  if (req.body.opalTypes && Array.isArray(req.body.opalTypes)) {
+    fallbackStorage.settings.opalTypes = req.body.opalTypes;
+  }
+  res.json({ opalTypes: fallbackStorage.settings.opalTypes });
+});
 
-  app.post('/api/settings/opal-types', (req, res) => {
-    if (req.body.opalTypes && Array.isArray(req.body.opalTypes)) {
-      fallbackStorage.settings.opalTypes = req.body.opalTypes;
-    }
-    res.json({ opalTypes: fallbackStorage.settings.opalTypes });
-  });
+// Fallback: Add basic auction endpoints
+app.get('/api/auctions', (req, res) => {
+  res.json({ auctions: fallbackStorage.auctions, total: fallbackStorage.auctions.length });
+});
 
-  // Fallback: Add basic auction endpoints
-  app.get('/api/auctions', (req, res) => {
-    res.json({ auctions: fallbackStorage.auctions, total: fallbackStorage.auctions.length });
-  });
-
-  app.post('/api/auctions', (req, res) => {
-    console.log('🎯 Creating new auction with data:', req.body);
-    console.log('🎯 Reserve price received:', req.body.reservePrice);
-    
-    const newAuction = {
-      id: 'AU' + String(Date.now()).slice(-4),
-      ...req.body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    console.log('🎯 New auction created:', newAuction);
-    fallbackStorage.auctions.push(newAuction);
-    res.status(201).json(newAuction);
-  });
-
-  app.get('/api/live-auctions', (req, res) => {
-    res.json({ liveAuctions: fallbackStorage.liveAuctions });
-  });
-
-  app.post('/api/live-auctions', (req, res) => {
-    const newLiveAuction = {
-      id: 'LA' + String(Date.now()).slice(-4),
-      ...req.body,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-    fallbackStorage.liveAuctions.push(newLiveAuction);
-    res.status(201).json(newLiveAuction);
-  });
+app.post('/api/auctions', (req, res) => {
+  console.log('🎯 Creating new auction with data:', req.body);
+  console.log('🎯 Reserve price received:', req.body.reservePrice);
   
-  console.log('⚠️ Using fallback API endpoints');
-}
+  const newAuction = {
+    id: 'AU' + String(Date.now()).slice(-4),
+    ...req.body,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  
+  console.log('🎯 New auction created:', newAuction);
+  fallbackStorage.auctions.push(newAuction);
+  res.status(201).json(newAuction);
+});
+
+app.get('/api/live-auctions', (req, res) => {
+  res.json({ liveAuctions: fallbackStorage.liveAuctions });
+});
+
+app.post('/api/live-auctions', (req, res) => {
+  const newLiveAuction = {
+    id: 'LA' + String(Date.now()).slice(-4),
+    ...req.body,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  fallbackStorage.liveAuctions.push(newLiveAuction);
+  res.status(201).json(newLiveAuction);
+});
 
 // Serve the React app for all other routes
 app.get('*', (req, res) => {
