@@ -54,6 +54,20 @@ export default function AddAuction() {
   const queryClient = useQueryClient();
   const [createdAuctionId, setCreatedAuctionId] = useState<string | null>(null);
 
+  // Utility function to format currency input
+  const formatCurrencyInput = (value: string) => {
+    if (!value) return value;
+    // If it's a whole number (no decimal), add .00
+    if (/^\d+$/.test(value)) {
+      return value + '.00';
+    }
+    // If it has decimal but only one digit after decimal, add another 0
+    if (/^\d+\.\d$/.test(value)) {
+      return value + '0';
+    }
+    return value;
+  };
+
   // Function to calculate end time based on start time and duration
   const calculateEndTime = (startTime: string, durationHours: string, durationMinutes: string = "0") => {
     if (!startTime || !durationHours) return "";
@@ -506,6 +520,12 @@ export default function AddAuction() {
                             className="pl-8 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
                             {...field}
                             data-testid="input-starting-bid"
+                            onBlur={(e) => {
+                              const formatted = formatCurrencyInput(e.target.value);
+                              if (formatted !== e.target.value) {
+                                field.onChange(formatted);
+                              }
+                            }}
                           />
                         </div>
                       </FormControl>
@@ -531,6 +551,12 @@ export default function AddAuction() {
                             placeholder="0.00"
                             className="pl-8 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
                             {...field}
+                            onBlur={(e) => {
+                              const formatted = formatCurrencyInput(e.target.value);
+                              if (formatted !== e.target.value) {
+                                field.onChange(formatted);
+                              }
+                            }}
                           />
                         </div>
                       </FormControl>
@@ -557,6 +583,12 @@ export default function AddAuction() {
                             className="pl-8 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
                             {...field}
                             data-testid="input-bid-increments"
+                            onBlur={(e) => {
+                              const formatted = formatCurrencyInput(e.target.value);
+                              if (formatted !== e.target.value) {
+                                field.onChange(formatted);
+                              }
+                            }}
                           />
                         </div>
                       </FormControl>
@@ -583,6 +615,12 @@ export default function AddAuction() {
                             className="pl-8 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
                             {...field}
                             data-testid="input-local-shipping"
+                            onBlur={(e) => {
+                              const formatted = formatCurrencyInput(e.target.value);
+                              if (formatted !== e.target.value) {
+                                field.onChange(formatted);
+                              }
+                            }}
                           />
                         </div>
                       </FormControl>
@@ -609,6 +647,12 @@ export default function AddAuction() {
                             className="pl-8 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
                             {...field}
                             data-testid="input-international-shipping"
+                            onBlur={(e) => {
+                              const formatted = formatCurrencyInput(e.target.value);
+                              if (formatted !== e.target.value) {
+                                field.onChange(formatted);
+                              }
+                            }}
                           />
                         </div>
                       </FormControl>
