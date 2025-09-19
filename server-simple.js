@@ -62,6 +62,83 @@ try {
   app.post('/api/settings', (req, res) => {
     res.json(req.body);
   });
+
+  // Fallback: Add payment methods endpoints
+  app.get('/api/settings/payment-methods', (req, res) => {
+    res.json([
+      { id: 'pm_1', name: 'Bank Transfer', description: 'Direct bank transfer' },
+      { id: 'pm_2', name: 'PayPal', description: 'PayPal payment' },
+      { id: 'pm_3', name: 'Credit Card', description: 'Credit card payment' },
+      { id: 'pm_4', name: 'Cash on Delivery', description: 'Pay when item is delivered' }
+    ]);
+  });
+
+  app.post('/api/settings/payment-methods', (req, res) => {
+    const newPaymentMethod = {
+      id: 'pm_' + Date.now(),
+      name: req.body.name || 'New Payment Method',
+      description: req.body.description || ''
+    };
+    res.status(201).json(newPaymentMethod);
+  });
+
+  app.put('/api/settings/payment-methods/:id', (req, res) => {
+    const updatedPaymentMethod = {
+      id: req.params.id,
+      name: req.body.name || 'Updated Payment Method',
+      description: req.body.description || ''
+    };
+    res.json(updatedPaymentMethod);
+  });
+
+  app.delete('/api/settings/payment-methods/:id', (req, res) => {
+    res.status(204).send();
+  });
+
+  // Fallback: Add opal types endpoints
+  app.get('/api/settings/opal-types', (req, res) => {
+    res.json({
+      opalTypes: [
+        "Black Opal", "Crystal Opal", "Boulder Opal", "White Opal",
+        "Fire Opal", "Matrix Opal", "Rough Opal", "Doublet Opal",
+        "Triplet Opal", "Synthetic Opal", "Ethiopian Opal", "Mexican Opal",
+        "Peruvian Opal", "Other"
+      ]
+    });
+  });
+
+  app.post('/api/settings/opal-types', (req, res) => {
+    res.json({ opalTypes: req.body.opalTypes || [] });
+  });
+
+  // Fallback: Add basic auction endpoints
+  app.get('/api/auctions', (req, res) => {
+    res.json({ auctions: [], total: 0 });
+  });
+
+  app.post('/api/auctions', (req, res) => {
+    const newAuction = {
+      id: 'AU' + String(Date.now()).slice(-4),
+      ...req.body,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    res.status(201).json(newAuction);
+  });
+
+  app.get('/api/live-auctions', (req, res) => {
+    res.json({ liveAuctions: [] });
+  });
+
+  app.post('/api/live-auctions', (req, res) => {
+    const newLiveAuction = {
+      id: 'LA' + String(Date.now()).slice(-4),
+      ...req.body,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    res.status(201).json(newLiveAuction);
+  });
   
   console.log('⚠️ Using fallback API endpoints');
 }
