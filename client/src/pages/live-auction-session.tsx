@@ -28,11 +28,10 @@ const liveAuctionSessionSchema = z.object({
   title: z.string().min(1, "Auction title is required"),
   description: z.string().optional(),
   facebookGroup: z.string().min(1, "Facebook group is required"), // Required for bid detection
-  postUrl: z.string().url().optional().or(z.literal("")), // Facebook post URL for bid detection
+  postUrl: z.string().min(1, "Facebook Post URL is required"), // Required for bid detection
   startTime: z.string().min(1, "Start time is required"),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(1440, "Duration cannot exceed 24 hours"),
   status: z.enum(["scheduled", "active", "ended"]).default("scheduled"),
-  postToFacebook: z.boolean().default(false),
   images: z.array(z.instanceof(File)).optional(),
   videos: z.array(z.instanceof(File)).optional(),
   enableBidDetection: z.boolean().default(true), // Enable automatic bid detection
@@ -67,10 +66,9 @@ export default function LiveAuctionSession() {
       facebookGroup: "",
       postUrl: "",
       startTime: getTodayDateTime(),
-      duration: 60, // Default to 1 hour
-      status: "scheduled",
-      postToFacebook: false,
-      images: [],
+    duration: 60, // Default to 1 hour
+    status: "scheduled",
+    images: [],
       videos: [],
       enableBidDetection: true, // Enable bid detection by default
     },
@@ -355,203 +353,101 @@ export default function LiveAuctionSession() {
             </CardContent>
           </Card>
 
-          {/* Facebook Integration */}
+          {/* Facebook Configuration */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
-                Facebook Integration
+                Facebook Configuration
               </CardTitle>
               <CardDescription>
-                Connect your live auction to Facebook groups
+                Configure Facebook group and post URL for bid detection
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {!isFacebookLoggedIn ? (
-                <div className="text-center py-6">
-                  <p className="text-muted-foreground mb-4">
-                    Login to Facebook to post your live auction directly to groups
-                  </p>
-                  <Button type="button" onClick={handleFacebookLogin}>
-                    <Users className="w-4 h-4 mr-2" />
-                    Login to Facebook
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Badge className="bg-green-500/10 text-green-600">
-                      Connected to Facebook
-                    </Badge>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsFacebookLoggedIn(false)}
-                    >
-                      Disconnect
-                    </Button>
-                  </div>
+              <FormField
+                control={form.control}
+                name="facebookGroup"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Facebook Group *</FormLabel>
+                    <FormDescription>
+                      Select the Facebook group where you'll post the live auction
+                    </FormDescription>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a Facebook group" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {isLoadingGroups ? (
+                          <SelectItem value="loading" disabled>
+                            Loading groups...
+                          </SelectItem>
+                        ) : facebookGroups.length > 0 ? (
+                          facebookGroups.map((group) => (
+                            <SelectItem key={group.id} value={group.name}>
+                              {group.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-groups" disabled>
+                            No groups available
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="facebookGroup"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Facebook Group *</FormLabel>
-                        <FormDescription>
-                          Required for bid detection: Select the Facebook group where you'll post the live auction
-                        </FormDescription>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select a Facebook group" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {isLoadingGroups ? (
-                              <SelectItem value="loading" disabled>
-                                Loading groups...
-                              </SelectItem>
-                            ) : facebookGroups.length > 0 ? (
-                              facebookGroups.map((group) => (
-                                <SelectItem key={group.id} value={group.name}>
-                                  {group.name}
-                                </SelectItem>
-                              ))
-                            ) : (
-                              <SelectItem value="no-groups" disabled>
-                                No groups available
-                              </SelectItem>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              <FormField
+                control={form.control}
+                name="postUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Facebook Post URL *</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="https://facebook.com/groups/your-group/posts/123456789"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      <strong>Required for bid detection:</strong> Copy the URL of your Facebook post where bidders will comment
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                  <FormField
-                    control={form.control}
-                    name="postUrl"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Facebook Post URL</FormLabel>
-                        <FormControl>
-                          <Input
-                            placeholder="https://facebook.com/groups/..."
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Required for bid detection: Link to your Facebook post where bids will be monitored
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="postToFacebook"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Post to Facebook automatically
-                          </FormLabel>
-                          <FormDescription>
-                            Automatically post this live auction to the selected Facebook group
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="enableBidDetection"
-                    render={({ field }) => (
-                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                        <FormControl>
-                          <Checkbox
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                        <div className="space-y-1 leading-none">
-                          <FormLabel>
-                            Enable automatic bid detection
-                          </FormLabel>
-                          <FormDescription>
-                            Automatically detect bids from Facebook comments using Chrome extension
-                          </FormDescription>
-                        </div>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
+              <FormField
+                control={form.control}
+                name="enableBidDetection"
+                render={({ field }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel>
+                        Enable automatic bid detection
+                      </FormLabel>
+                      <FormDescription>
+                        Automatically detect bids from Facebook comments using Chrome extension
+                      </FormDescription>
+                    </div>
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
-          {/* Media Upload Section - Only show when posting to Facebook */}
-          {form.watch("postToFacebook") && (
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="w-5 h-5" />
-                  Media Upload
-                </CardTitle>
-                <CardDescription>
-                  Upload images and videos for your Facebook post
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <FormLabel>Images</FormLabel>
-                    <Input
-                      type="file"
-                      multiple
-                      accept="image/*"
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        form.setValue("images", files);
-                      }}
-                      className="mt-1"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Upload images for your live auction post
-                    </p>
-                  </div>
-
-                  <div>
-                    <FormLabel>Videos</FormLabel>
-                    <Input
-                      type="file"
-                      multiple
-                      accept="video/*"
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        form.setValue("videos", files);
-                      }}
-                      className="mt-1"
-                    />
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Upload videos for your live auction post
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
 
           {/* Action Buttons */}
           <div className="flex items-center justify-end space-x-3">
@@ -565,6 +461,12 @@ export default function LiveAuctionSession() {
             <Button
               type="submit"
               disabled={createLiveAuctionMutation.isPending}
+              onClick={() => {
+                console.log('🎯 Button clicked!');
+                console.log('🎯 Form values:', form.getValues());
+                console.log('🎯 Form errors:', form.formState.errors);
+                console.log('🎯 Form is valid:', form.formState.isValid);
+              }}
             >
               {createLiveAuctionMutation.isPending ? (
                 <>
