@@ -59,6 +59,72 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'Opal Tracker is running!' });
 });
 
+// Monitor endpoints - always available
+app.get('/api/monitor/status', (req, res) => {
+  res.json({
+    running: false,
+    nextCheck: new Date(Date.now() + 60000).toISOString(),
+    message: "Monitor status - extension handles bid detection"
+  });
+});
+
+app.post('/api/monitor/start', (req, res) => {
+  res.json({
+    message: "Monitor started - extension handles bid detection",
+    status: { running: true, nextCheck: new Date(Date.now() + 60000).toISOString() }
+  });
+});
+
+app.post('/api/monitor/stop', (req, res) => {
+  res.json({
+    message: "Monitor stopped - extension handles bid detection",
+    status: { running: false, nextCheck: null }
+  });
+});
+
+app.post('/api/monitor/check', (req, res) => {
+  res.json({
+    message: "Manual check completed - extension handles bid detection",
+    updates: []
+  });
+});
+
+// Bid updates endpoint for Chrome extension
+app.post('/api/bid-updates', (req, res) => {
+  console.log('🎯 Bid update received from Chrome extension:', req.body);
+  
+  // Process the bid update
+  const { auctionId, currentBid, bidderName, timestamp } = req.body;
+  
+  if (!auctionId || !currentBid) {
+    return res.status(400).json({ 
+      error: 'Missing required fields: auctionId and currentBid are required' 
+    });
+  }
+  
+  // Update the auction in fallback storage
+  const auctionIndex = fallbackStorage.auctions.findIndex(a => a.id === auctionId);
+  if (auctionIndex !== -1) {
+    fallbackStorage.auctions[auctionIndex].currentBid = currentBid;
+    fallbackStorage.auctions[auctionIndex].currentBidder = bidderName || 'Unknown';
+    fallbackStorage.auctions[auctionIndex].updatedAt = new Date().toISOString();
+    
+    console.log('✅ Auction updated:', fallbackStorage.auctions[auctionIndex]);
+    
+    res.json({
+      success: true,
+      message: 'Bid update processed successfully',
+      auction: fallbackStorage.auctions[auctionIndex]
+    });
+  } else {
+    console.log('❌ Auction not found:', auctionId);
+    res.status(404).json({ 
+      error: 'Auction not found',
+      auctionId: auctionId
+    });
+  }
+});
+
 // Import and register all API routes
 try {
   const { registerRoutes } = await import('./server/routes.js');
@@ -160,36 +226,6 @@ try {
     };
     fallbackStorage.liveAuctions.push(newLiveAuction);
     res.status(201).json(newLiveAuction);
-  });
-  
-  // Fallback: Add monitor endpoints
-  app.get('/api/monitor/status', (req, res) => {
-    res.json({
-      running: false,
-      nextCheck: new Date(Date.now() + 60000).toISOString(),
-      message: "Monitor status - extension handles bid detection"
-    });
-  });
-
-  app.post('/api/monitor/start', (req, res) => {
-    res.json({
-      message: "Monitor started - extension handles bid detection",
-      status: { running: true, nextCheck: new Date(Date.now() + 60000).toISOString() }
-    });
-  });
-
-  app.post('/api/monitor/stop', (req, res) => {
-    res.json({
-      message: "Monitor stopped - extension handles bid detection",
-      status: { running: false, nextCheck: null }
-    });
-  });
-
-  app.post('/api/monitor/check', (req, res) => {
-    res.json({
-      message: "Manual check completed - extension handles bid detection",
-      updates: []
-    });
   });
   
   console.log('⚠️ Using fallback API endpoints');
