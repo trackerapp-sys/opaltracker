@@ -1,4 +1,4 @@
-import { type Auction, type InsertAuction, type LiveAuction, type InsertLiveAuction, type AuctionItem, type InsertAuctionItem } from "@shared/schema";
+import { type Auction, type InsertAuction, type LiveAuction, type InsertLiveAuction, type AuctionItem, type InsertAuctionItem, type BidHistory, type InsertBidHistory } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -50,6 +50,12 @@ export interface IStorage {
   addPaymentMethod(paymentMethod: { name: string; description?: string }): Promise<{ id: string; name: string; description?: string }>;
   updatePaymentMethod(id: string, paymentMethod: { name: string; description?: string }): Promise<{ id: string; name: string; description?: string } | null>;
   deletePaymentMethod(id: string): Promise<boolean>;
+  
+  // Bid History methods
+  addBidHistory(bidHistory: InsertBidHistory): Promise<BidHistory>;
+  getBidHistory(auctionId: string): Promise<BidHistory[]>;
+  updateBidStatus(bidId: string, status: string, correctionReason?: string, correctedBy?: string): Promise<BidHistory | null>;
+  getActiveBidHistory(auctionId: string): Promise<BidHistory[]>;
 }
 
 export class MemStorage implements IStorage {
@@ -58,6 +64,7 @@ export class MemStorage implements IStorage {
   private auctionItems: Map<string, AuctionItem>;
   private settings: Map<string, any>;
   private paymentMethods: Map<string, { id: string; name: string; description?: string }>;
+  private bidHistory: Map<string, BidHistory>;
   private auctionIdCounter: number;
 
   constructor() {
@@ -66,6 +73,7 @@ export class MemStorage implements IStorage {
     this.auctionItems = new Map();
     this.settings = new Map();
     this.paymentMethods = new Map();
+    this.bidHistory = new Map();
     this.auctionIdCounter = 0;
     
     // Initialize default settings
@@ -446,6 +454,46 @@ export class MemStorage implements IStorage {
 
   async deletePaymentMethod(id: string): Promise<boolean> {
     return this.paymentMethods.delete(id);
+  }
+
+  // Bid History methods
+  async addBidHistory(insertBidHistory: InsertBidHistory): Promise<BidHistory> {
+    const id = randomUUID();
+    const now = new Date();
+    const bidHistoryEntry: BidHistory = {
+      id,
+      ...insertBidHistory,
+      createdAt: now,
+    };
+    this.bidHistory.set(id, bidHistoryEntry);
+    return bidHistoryEntry;
+  }
+
+  async getBidHistory(auctionId: string): Promise<BidHistory[]> {
+    return Array.from(this.bidHistory.values())
+      .filter(bid => bid.auctionId === auctionId)
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+  }
+
+  async updateBidStatus(bidId: string, status: string, correctionReason?: string, correctedBy?: string): Promise<BidHistory | null> {
+    const bid = this.bidHistory.get(bidId);
+    if (!bid) return null;
+
+    const updatedBid: BidHistory = {
+      ...bid,
+      status: status as any,
+      correctionReason: correctionReason || null,
+      correctedBy: correctedBy || null,
+    };
+    
+    this.bidHistory.set(bidId, updatedBid);
+    return updatedBid;
+  }
+
+  async getActiveBidHistory(auctionId: string): Promise<BidHistory[]> {
+    return Array.from(this.bidHistory.values())
+      .filter(bid => bid.auctionId === auctionId && bid.status === 'active')
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }
 }
 

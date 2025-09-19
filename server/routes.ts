@@ -459,6 +459,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual bid correction endpoint
+  app.post("/api/auctions/:id/manual-bid-correction", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { newAmount, bidderName, correctionReason, correctedBy } = req.body;
+      
+      console.log(`🔧 Manual bid correction for auction ${id}: $${newAmount} from ${bidderName}`);
+      
+      // Get current auction
+      const auction = await storage.getAuction(id);
+      if (!auction) {
+        return res.status(404).json({ message: "Auction not found" });
+      }
+      
+      // Add to bid history as manual override
+      await storage.addBidHistory({
+        auctionId: id,
+        amount: newAmount.toString(),
+        bidderName: bidderName || 'Manual Override',
+        commentText: `Manual correction: ${correctionReason || 'Auctioneer override'}`,
+        timestamp: new Date(),
+        status: 'manual_override',
+        correctionReason: correctionReason || 'Manual correction by auctioneer',
+        correctedBy: correctedBy || 'Auctioneer',
+        isManualOverride: true
+      });
+      
+      // Update auction with new bid
+      await storage.updateAuction(id, {
+        currentBid: newAmount.toString(),
+        currentBidder: bidderName || 'Manual Override'
+      });
+      
+      res.json({ 
+        success: true, 
+        message: "Bid manually corrected",
+        newBid: newAmount,
+        bidder: bidderName
+      });
+      
+    } catch (error) {
+      console.error("Error in manual bid correction:", error);
+      res.status(500).json({ message: "Failed to correct bid" });
+    }
+  });
+
+  // Get bid history for an auction
+  app.get("/api/auctions/:id/bid-history", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const bidHistory = await storage.getBidHistory(id);
+      res.json(bidHistory);
+    } catch (error) {
+      console.error("Error fetching bid history:", error);
+      res.status(500).json({ message: "Failed to fetch bid history" });
+    }
+  });
+
   // Bid update endpoint for browser extension
   app.post("/api/bid-updates", async (req, res) => {
     try {

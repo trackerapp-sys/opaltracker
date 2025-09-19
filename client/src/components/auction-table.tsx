@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Eye, Edit, ExternalLink, DollarSign, Clock, RefreshCw, AlertTriangle, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Eye, Edit, ExternalLink, DollarSign, Clock, RefreshCw, AlertTriangle, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -49,6 +49,13 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
   const [newBid, setNewBid] = useState("");
   const [newBidder, setNewBidder] = useState("");
   const [newStatus, setNewStatus] = useState("");
+  const [isManualCorrectionOpen, setIsManualCorrectionOpen] = useState(false);
+  const [manualCorrectionAuction, setManualCorrectionAuction] = useState<Auction | null>(null);
+  const [manualCorrectionForm, setManualCorrectionForm] = useState({
+    newAmount: "",
+    bidderName: "",
+    correctionReason: ""
+  });
 
   // Function to determine reserve price status
   const getReservePriceStatus = (auction: Auction) => {
@@ -91,6 +98,7 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
     facebookGroup: "",
     postUrl: "",
     startingBid: "",
+    reservePrice: "",
     currentBid: "",
     maxBid: "",
     startTime: "",
@@ -182,6 +190,23 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
     },
   });
 
+  const manualBidCorrectionMutation = useMutation({
+    mutationFn: async ({ auctionId, correctionData }: { auctionId: string; correctionData: any }) => {
+      const response = await apiRequest("POST", `/api/auctions/${auctionId}/manual-bid-correction`, correctionData);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/auctions"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/analytics"] });
+      toast({ title: "Success", description: "Bid manually corrected!" });
+      setIsManualCorrectionOpen(false);
+      setManualCorrectionForm({ newAmount: "", bidderName: "", correctionReason: "" });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to correct bid", variant: "destructive" });
+    },
+  });
+
   const handleQuickBidUpdate = (auction: Auction) => {
     if (!newBid || parseFloat(newBid) <= 0) {
       toast({ title: "Error", description: "Please enter a valid bid amount", variant: "destructive" });
@@ -215,6 +240,33 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
     updateAuctionMutation.mutate({
       id: auction.id,
       updates: { status }
+    });
+  };
+
+  const handleManualCorrection = (auction: Auction) => {
+    setManualCorrectionAuction(auction);
+    setManualCorrectionForm({
+      newAmount: auction.currentBid || auction.startingBid,
+      bidderName: auction.currentBidder || "",
+      correctionReason: ""
+    });
+    setIsManualCorrectionOpen(true);
+  };
+
+  const submitManualCorrection = () => {
+    if (!manualCorrectionAuction || !manualCorrectionForm.newAmount) {
+      toast({ title: "Error", description: "Please enter a valid bid amount", variant: "destructive" });
+      return;
+    }
+
+    manualBidCorrectionMutation.mutate({
+      auctionId: manualCorrectionAuction.id,
+      correctionData: {
+        newAmount: parseFloat(manualCorrectionForm.newAmount),
+        bidderName: manualCorrectionForm.bidderName,
+        correctionReason: manualCorrectionForm.correctionReason,
+        correctedBy: "Auctioneer"
+      }
     });
   };
 
@@ -340,8 +392,15 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
                 onClick={() => handleSort('startingBid')}
               >
                 <div className="flex items-center justify-start space-x-1">
-                  <span>Reserve Price</span>
+                  <span>Starting Bid</span>
                   {getSortIcon('startingBid')}
+                </div>
+              </th>
+              <th 
+                className="text-left px-2 py-2 text-xs font-medium text-muted-foreground w-24"
+              >
+                <div className="flex items-center justify-start space-x-1">
+                  <span>Reserve Price</span>
                 </div>
               </th>
               <th 
@@ -411,6 +470,9 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
                 <td className="px-2 py-2 text-xs font-medium text-foreground" data-testid={`starting-bid-${auction.id}`}>
                   {formatCurrency(auction.startingBid)}
                 </td>
+                <td className="px-2 py-2 text-xs font-medium text-foreground" data-testid={`reserve-price-${auction.id}`}>
+                  {auction.reservePrice ? formatCurrency(auction.reservePrice) : '-'}
+                </td>
                 <td className="px-2 py-2 text-xs font-medium text-foreground" data-testid={`current-bid-${auction.id}`}>
                   {formatCurrency(auction.currentBid || "0")}
                 </td>
@@ -472,6 +534,15 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
                     >
                       <RefreshCw className={`h-3 w-3 ${refreshBidsMutation.isPending ? 'animate-spin' : ''}`} />
                     </Button>
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                      title="Manual Bid Correction"
+                      onClick={() => handleManualCorrection(auction)}
+                    >
+                      <Settings className="h-3 w-3" />
+                    </Button>
                     <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
                       <DialogTrigger asChild>
                         <Button 
@@ -490,6 +561,7 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
                               facebookGroup: auction.facebookGroup,
                               postUrl: auction.postUrl || "",
                               startingBid: auction.startingBid?.toString() || "",
+                              reservePrice: auction.reservePrice?.toString() || "",
                               currentBid: (auction.currentBid || auction.startingBid)?.toString() || "",
                               maxBid: "", // This field might not exist in current data
                               startTime: convertFromUTC(auction.startTime, settings?.timezone || 'Australia/Sydney'),
@@ -559,7 +631,7 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
                             />
                           </div>
                           <div className="space-y-2">
-                            <Label htmlFor="edit-starting-bid">Reserve Price *</Label>
+                            <Label htmlFor="edit-starting-bid">Starting Bid *</Label>
                             <div className="relative">
                               <span className="absolute left-3 top-2 text-muted-foreground">$</span>
                               <Input
@@ -569,6 +641,21 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
                                 value={editForm.startingBid}
                                 onChange={(e) => setEditForm(prev => ({ ...prev, startingBid: e.target.value }))}
                                 className="pl-8"
+                              />
+                            </div>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="edit-reserve-price">Reserve Price</Label>
+                            <div className="relative">
+                              <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+                              <Input
+                                id="edit-reserve-price"
+                                type="number"
+                                step="0.01"
+                                value={editForm.reservePrice}
+                                onChange={(e) => setEditForm(prev => ({ ...prev, reservePrice: e.target.value }))}
+                                className="pl-8"
+                                placeholder="0.00"
                               />
                             </div>
                           </div>
@@ -643,6 +730,76 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
           </tbody>
         </table>
       </div>
+
+      {/* Manual Bid Correction Dialog */}
+      <Dialog open={isManualCorrectionOpen} onOpenChange={setIsManualCorrectionOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Manual Bid Correction</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            {manualCorrectionAuction && (
+              <div className="text-sm text-muted-foreground">
+                <p><strong>Auction:</strong> {manualCorrectionAuction.opalType} - {manualCorrectionAuction.weight}ct</p>
+                <p><strong>Current Bid:</strong> {formatCurrency(manualCorrectionAuction.currentBid || manualCorrectionAuction.startingBid)}</p>
+                <p><strong>Current Bidder:</strong> {manualCorrectionAuction.currentBidder || 'None'}</p>
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="correction-amount">New Bid Amount *</Label>
+              <div className="relative">
+                <span className="absolute left-3 top-2 text-muted-foreground">$</span>
+                <Input
+                  id="correction-amount"
+                  type="number"
+                  step="0.01"
+                  value={manualCorrectionForm.newAmount}
+                  onChange={(e) => setManualCorrectionForm(prev => ({ ...prev, newAmount: e.target.value }))}
+                  className="pl-8"
+                  placeholder="0.00"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="correction-bidder">Bidder Name</Label>
+              <Input
+                id="correction-bidder"
+                value={manualCorrectionForm.bidderName}
+                onChange={(e) => setManualCorrectionForm(prev => ({ ...prev, bidderName: e.target.value }))}
+                placeholder="Enter bidder name"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="correction-reason">Correction Reason</Label>
+              <Textarea
+                id="correction-reason"
+                value={manualCorrectionForm.correctionReason}
+                onChange={(e) => setManualCorrectionForm(prev => ({ ...prev, correctionReason: e.target.value }))}
+                placeholder="e.g., 'Bidder meant $160, not $1600'"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end space-x-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsManualCorrectionOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={submitManualCorrection}
+                disabled={manualBidCorrectionMutation.isPending || !manualCorrectionForm.newAmount}
+              >
+                {manualBidCorrectionMutation.isPending ? 'Correcting...' : 'Correct Bid'}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

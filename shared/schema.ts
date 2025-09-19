@@ -203,5 +203,26 @@ export type InsertAuctionItem = z.infer<typeof insertAuctionItemSchema>;
 export type AuctionItem = typeof auctionItems.$inferSelect;
 export type InsertSettings = z.infer<typeof insertSettingsSchema>;
 export type Settings = typeof settings.$inferSelect;
-export type InsertPaymentMethod = z.infer<typeof insertPaymentMethodSchema>;
-export type PaymentMethod = typeof paymentMethods.$inferSelect;
+// Bid History Schema for tracking all bids and corrections
+export const bidHistory = pgTable("bid_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  auctionId: varchar("auction_id").notNull().references(() => auctions.id),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  bidderName: text("bidder_name").notNull(),
+  commentText: text("comment_text"),
+  timestamp: timestamp("timestamp").default(sql`CURRENT_TIMESTAMP`).notNull(),
+  status: text("status", { enum: ["active", "corrected", "retracted", "superseded", "manual_override"] }).default("active").notNull(),
+  correctionReason: text("correction_reason"),
+  correctedBy: text("corrected_by"), // Who made the correction
+  isManualOverride: boolean("is_manual_override").default(false),
+  createdAt: timestamp("created_at").default(sql`CURRENT_TIMESTAMP`).notNull(),
+});
+
+export const insertBidHistorySchema = createInsertSchema(bidHistory)
+  .omit({
+    id: true,
+    createdAt: true,
+  });
+
+export type InsertBidHistory = z.infer<typeof insertBidHistorySchema>;
+export type BidHistory = typeof bidHistory.$inferSelect;
