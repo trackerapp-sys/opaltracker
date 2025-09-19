@@ -67,6 +67,7 @@ export default function LiveAuctionSession() {
 
   const form = useForm<LiveAuctionSessionForm>({
     resolver: zodResolver(liveAuctionSessionSchema),
+    mode: "onChange", // Validate on change instead of on submit
     defaultValues: {
       title: "",
       description: "",
@@ -328,7 +329,10 @@ export default function LiveAuctionSession() {
     console.log('🎯 Form submitted with data:', data);
     console.log('🎯 Facebook Group:', data.facebookGroup);
     console.log('🎯 Post URL:', data.postUrl);
+    console.log('🎯 Form errors:', form.formState.errors);
+    console.log('🎯 Form is valid:', form.formState.isValid);
     
+    // Force submission even if validation fails
     try {
       createLiveAuctionMutation.mutate(data);
     } catch (error: unknown) {
