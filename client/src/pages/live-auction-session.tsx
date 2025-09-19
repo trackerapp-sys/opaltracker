@@ -153,12 +153,18 @@ export default function LiveAuctionSession() {
 
   // Function to detect Facebook groups using Chrome extension
   const detectFacebookGroups = async () => {
+    console.log('🎯 Detect Groups button clicked!');
+    console.log('🎯 Chrome available:', typeof chrome !== 'undefined');
+    console.log('🎯 Chrome runtime available:', typeof chrome !== 'undefined' && chrome.runtime);
+    
     setIsDetectingGroups(true);
     try {
       // Check if Chrome extension is available
       if (typeof chrome !== 'undefined' && chrome.runtime) {
+        console.log('🎯 Using Chrome extension to detect groups');
         // Send message to Chrome extension to detect groups
         chrome.runtime.sendMessage({ action: 'detectFacebookGroups' }, (response) => {
+          console.log('🎯 Chrome extension response:', response);
           if (response && response.success) {
             console.log('✅ Groups detected by extension:', response.groups);
             setFacebookGroups(response.groups || []);
@@ -178,12 +184,13 @@ export default function LiveAuctionSession() {
           setIsDetectingGroups(false);
         });
       } else {
+        console.log('🎯 Chrome extension not available, using server fallback');
         // Fallback: fetch from server
         await fetchFacebookGroupsFromServer();
         setIsDetectingGroups(false);
       }
     } catch (error) {
-      console.error('Error detecting Facebook groups:', error);
+      console.error('❌ Error detecting Facebook groups:', error);
       toast({
         title: "Error",
         description: "Failed to detect Facebook groups",
@@ -195,18 +202,25 @@ export default function LiveAuctionSession() {
 
   // Function to fetch Facebook groups from server
   const fetchFacebookGroupsFromServer = async () => {
+    console.log('🎯 Fetching Facebook groups from server...');
     setIsLoadingGroups(true);
     try {
       const response = await fetch('/api/facebook/groups');
+      console.log('🎯 Server response status:', response.status);
       if (response.ok) {
         const data = await response.json();
-        setFacebookGroups(data || []);
         console.log('✅ Groups fetched from server:', data);
+        setFacebookGroups(data || []);
+        toast({
+          title: "Groups Loaded",
+          description: `Loaded ${data?.length || 0} Facebook groups from server`,
+          variant: "default",
+        });
       } else {
         throw new Error('Failed to fetch Facebook groups');
       }
     } catch (error: unknown) {
-      console.error('Error fetching Facebook groups:', error);
+      console.error('❌ Error fetching Facebook groups:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to fetch Facebook groups",
@@ -448,7 +462,10 @@ export default function LiveAuctionSession() {
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={detectFacebookGroups}
+                  onClick={() => {
+                    console.log('🎯 Detect Groups button clicked!');
+                    detectFacebookGroups();
+                  }}
                   disabled={isDetectingGroups || isLoadingGroups}
                 >
                   {isDetectingGroups ? (
