@@ -29,7 +29,8 @@ const addAuctionSchema = z.object({
   shape: z.string().optional(),
   facebookGroup: z.string().min(1, "Facebook group is required"),
   postUrl: z.string().url().optional().or(z.literal("")),
-  startingBid: z.string().min(1, "Reserve price is required").regex(/^\d+\.?\d*$/, "Reserve price must be a valid number"),
+  startingBid: z.string().min(1, "Starting bid is required").regex(/^\d+\.?\d*$/, "Starting bid must be a valid number"),
+  reservePrice: z.string().regex(/^\d*\.?\d*$/, "Reserve price must be a valid number").optional(),
   maxBid: z.string().regex(/^\d*\.?\d*$/, "Max bid must be a valid number").optional(),
   bidIncrements: z.string().regex(/^\d*\.?\d*$/, "Bid increments must be a valid number").optional(),
   localShipping: z.string().regex(/^\d*\.?\d*$/, "Local shipping cost must be a valid number").optional(),
@@ -100,6 +101,7 @@ export default function AddAuction() {
       facebookGroup: "",
       postUrl: "",
       startingBid: "",
+      reservePrice: "",
       maxBid: "",
       bidIncrements: "",
       localShipping: "",
@@ -491,7 +493,7 @@ export default function AddAuction() {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                        Reserve Price *
+                        Starting Bid *
                       </FormLabel>
                       <FormControl>
                         <div className="relative">
@@ -503,6 +505,31 @@ export default function AddAuction() {
                             className="pl-8 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
                             {...field}
                             data-testid="input-starting-bid"
+                          />
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="reservePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                        Reserve Price
+                      </FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-500 font-medium">$</span>
+                          <Input 
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            className="pl-8 bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 focus:border-orange-500 focus:ring-orange-500"
+                            {...field}
                           />
                         </div>
                       </FormControl>

@@ -242,18 +242,18 @@ export default function Dashboard() {
             {/* Updated design - v2 */}
           </div>
           <div className="p-3">
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Link href="/add-auction">
-                <Button className="w-full justify-center h-9 text-sm" data-testid="button-add-auction">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Auction
+                <Button className="w-full justify-center h-8 text-xs" data-testid="button-add-auction">
+                  <Plus className="w-3 h-3 mr-1" />
+                  Add Individual Auction
                 </Button>
               </Link>
               
               <Link href="/live-auction-session">
-                <Button className="w-full justify-center h-9 text-sm bg-blue-600 hover:bg-blue-700">
-                  <Calendar className="w-4 h-4 mr-2" />
-                  Live Auction
+                <Button className="w-full justify-center h-8 text-xs bg-blue-600 hover:bg-blue-700">
+                  <Calendar className="w-3 h-3 mr-1" />
+                  Add Live Auction
                 </Button>
               </Link>
               
