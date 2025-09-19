@@ -37,6 +37,7 @@ interface AuctionItem {
   weight: string;
   description: string;
   startingBid: string;
+  reservePrice?: string;
   currentBid?: string;
   biddingDuration: number; // minutes
   biddingStartTime?: string;
