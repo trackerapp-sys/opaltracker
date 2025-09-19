@@ -333,9 +333,18 @@ export default function LiveAuctionSession() {
     console.log('🎯 Form is valid:', form.formState.isValid);
     console.log('🎯 Form values:', JSON.stringify(form.getValues(), null, 2));
     
+    // Ensure required fields have default values if empty
+    const formData = {
+      ...data,
+      title: data.title || "Live Auction Session", // Default title if empty
+      facebookGroup: data.facebookGroup || "", // Keep empty if not provided
+    };
+    
+    console.log('🎯 Final form data:', formData);
+    
     // Force submission even if validation fails
     try {
-      createLiveAuctionMutation.mutate(data);
+      createLiveAuctionMutation.mutate(formData);
     } catch (error: unknown) {
       console.error('Submit error:', error);
       toast({
