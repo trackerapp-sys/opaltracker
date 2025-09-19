@@ -37,7 +37,8 @@ const fallbackStorage = {
     { id: 'pm_4', name: 'Cash on Delivery', description: 'Pay when item is delivered' }
   ],
   auctions: [],
-  liveAuctions: []
+  liveAuctions: [],
+  facebookGroups: [] // Store detected Facebook groups
 };
 
 // Middleware
@@ -277,6 +278,23 @@ app.post('/api/settings/opal-types', (req, res) => {
     fallbackStorage.settings.opalTypes = req.body.opalTypes;
   }
   res.json({ opalTypes: fallbackStorage.settings.opalTypes });
+});
+
+// Fallback: Facebook groups endpoints
+app.get('/api/facebook/groups', (req, res) => {
+  console.log('📋 Fetching Facebook groups, count:', fallbackStorage.facebookGroups.length);
+  res.json(fallbackStorage.facebookGroups);
+});
+
+app.post('/api/facebook/groups', (req, res) => {
+  console.log('📨 Received Facebook groups:', req.body);
+  if (req.body.groups && Array.isArray(req.body.groups)) {
+    fallbackStorage.facebookGroups = req.body.groups;
+    console.log('✅ Facebook groups updated:', fallbackStorage.facebookGroups);
+    res.json({ success: true, groups: fallbackStorage.facebookGroups });
+  } else {
+    res.status(400).json({ error: 'Invalid groups data' });
+  }
 });
 
 // Fallback: Add basic auction endpoints

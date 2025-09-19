@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -54,6 +54,7 @@ export default function LiveAuctionSession() {
   const [isFacebookLoggedIn, setIsFacebookLoggedIn] = useState(false);
   const [facebookGroups, setFacebookGroups] = useState<any[]>([]);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
+  const [isDetectingGroups, setIsDetectingGroups] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
@@ -73,6 +74,11 @@ export default function LiveAuctionSession() {
       enableBidDetection: true, // Enable bid detection by default
     },
   });
+
+  // Fetch Facebook groups on component mount
+  useEffect(() => {
+    fetchFacebookGroupsFromServer();
+  }, []);
 
   // Helper function to calculate end time based on start time and duration
   const calculateEndTime = (startTime: string, durationMinutes: number) => {
@@ -142,6 +148,74 @@ export default function LiveAuctionSession() {
         description: "Failed to connect to Facebook",
         variant: "destructive",
       });
+    }
+  };
+
+  };
+
+  // Function to detect Facebook groups using Chrome extension
+  const detectFacebookGroups = async () => {
+    setIsDetectingGroups(true);
+    try {
+      // Check if Chrome extension is available
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        // Send message to Chrome extension to detect groups
+        chrome.runtime.sendMessage({ action: 'detectFacebookGroups' }, (response) => {
+          if (response && response.success) {
+            console.log('✅ Groups detected by extension:', response.groups);
+            setFacebookGroups(response.groups || []);
+            toast({
+              title: "Groups Detected",
+              description: `Found ${response.groups?.length || 0} Facebook groups`,
+              variant: "default",
+            });
+          } else {
+            console.log('❌ Extension did not detect groups');
+            toast({
+              title: "No Groups Detected",
+              description: "Please visit Facebook groups page and try again",
+              variant: "destructive",
+            });
+          }
+          setIsDetectingGroups(false);
+        });
+      } else {
+        // Fallback: fetch from server
+        await fetchFacebookGroupsFromServer();
+        setIsDetectingGroups(false);
+      }
+    } catch (error) {
+      console.error('Error detecting Facebook groups:', error);
+      toast({
+        title: "Error",
+        description: "Failed to detect Facebook groups",
+        variant: "destructive",
+      });
+      setIsDetectingGroups(false);
+    }
+  };
+
+  // Function to fetch Facebook groups from server
+  const fetchFacebookGroupsFromServer = async () => {
+    setIsLoadingGroups(true);
+    try {
+      const response = await fetch('/api/facebook/groups');
+      if (response.ok) {
+        const data = await response.json();
+        setFacebookGroups(data || []);
+        console.log('✅ Groups fetched from server:', data);
+      } else {
+        throw new Error('Failed to fetch Facebook groups');
+      }
+    } catch (error: unknown) {
+      console.error('Error fetching Facebook groups:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to fetch Facebook groups",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingGroups(false);
     }
   };
 
@@ -365,6 +439,34 @@ export default function LiveAuctionSession() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-sm font-medium">Facebook Groups</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Detect your Facebook groups automatically
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={detectFacebookGroups}
+                  disabled={isDetectingGroups || isLoadingGroups}
+                >
+                  {isDetectingGroups ? (
+                    <>
+                      <Clock className="w-3 h-3 mr-1 animate-spin" />
+                      Detecting...
+                    </>
+                  ) : (
+                    <>
+                      <Users className="w-3 h-3 mr-1" />
+                      Detect Groups
+                    </>
+                  )}
+                </Button>
+              </div>
+
               <FormField
                 control={form.control}
                 name="facebookGroup"

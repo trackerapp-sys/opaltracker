@@ -17,6 +17,108 @@ if (isDevelopment) {
 } else {
   console.log('🚀 PRODUCTION MODE: Using deployed tracker at', trackerUrl);
 }
+
+// Facebook Groups Detection
+let detectedGroups = [];
+let isDetectingGroups = false;
+
+// Function to detect Facebook groups
+function detectFacebookGroups() {
+  if (isDetectingGroups) return;
+  isDetectingGroups = true;
+  
+  console.log('🔍 Detecting Facebook groups...');
+  
+  try {
+    // Look for group links in the left sidebar
+    const groupLinks = document.querySelectorAll('a[href*="/groups/"]');
+    const groups = new Set();
+    
+    groupLinks.forEach(link => {
+      const href = link.getAttribute('href');
+      const text = link.textContent?.trim();
+      
+      if (href && text && href.includes('/groups/') && !href.includes('/groups/feed')) {
+        // Extract group name from the link text or href
+        const groupName = text || href.split('/groups/')[1]?.split('/')[0];
+        if (groupName && groupName !== 'feed' && groupName !== 'discover') {
+          groups.add({
+            name: groupName,
+            url: href.startsWith('http') ? href : `https://facebook.com${href}`,
+            id: href.split('/groups/')[1]?.split('/')[0]
+          });
+        }
+      }
+    });
+    
+    // Also look for group names in the main content
+    const groupElements = document.querySelectorAll('[data-testid*="group"], [aria-label*="group"]');
+    groupElements.forEach(element => {
+      const text = element.textContent?.trim();
+      if (text && text.length > 0 && text.length < 100) {
+        groups.add({
+          name: text,
+          url: '',
+          id: text.toLowerCase().replace(/\s+/g, '-')
+        });
+      }
+    });
+    
+    detectedGroups = Array.from(groups);
+    console.log('✅ Detected Facebook groups:', detectedGroups);
+    
+    // Send groups to the tracker
+    if (detectedGroups.length > 0) {
+      sendGroupsToTracker(detectedGroups);
+    }
+    
+  } catch (error) {
+    console.log('❌ Error detecting Facebook groups:', error);
+  } finally {
+    isDetectingGroups = false;
+  }
+}
+
+// Function to send detected groups to the tracker
+function sendGroupsToTracker(groups) {
+  try {
+    fetch(`${trackerUrl}/api/facebook/groups`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        groups: groups,
+        timestamp: new Date().toISOString(),
+        url: window.location.href
+      }),
+    })
+    .then(response => response.json())
+    .then(data => {
+      console.log('✅ Groups sent to tracker:', data);
+    })
+    .catch(error => {
+      console.log('❌ Error sending groups to tracker:', error);
+    });
+  } catch (error) {
+    console.log('❌ Error sending groups to tracker:', error);
+  }
+}
+
+// Listen for messages from the tracker to detect groups
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'detectFacebookGroups') {
+    console.log('📨 Received request to detect Facebook groups');
+    detectFacebookGroups();
+    sendResponse({ success: true, groups: detectedGroups });
+  }
+});
+
+// Auto-detect groups when on Facebook groups page
+if (window.location.href.includes('facebook.com/groups')) {
+  console.log('🎯 On Facebook groups page, auto-detecting groups...');
+  setTimeout(detectFacebookGroups, 2000); // Wait 2 seconds for page to load
+}
 let lastHighestBid = 0;
 let isScanning = false;
 let bidHistory = []; // Track all bids found
