@@ -779,10 +779,12 @@ function sendToTracker(amount, bidder) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
+            auctionId: 'AU9968', // Default auction ID - should be extracted from URL or page
             currentBid: highestBid,
             bidderName: bidderName,
             url: window.location.href,
-            source: 'facebook-extension'
+            source: 'facebook-extension',
+            timestamp: new Date().toISOString()
           })
         });
         
