@@ -244,6 +244,10 @@ export default function AddAuction() {
       console.log('  Start:', data.startTime, '->', startTimeUTC);
       console.log('  End:', data.endTime, '->', endTimeUTC);
       
+      console.log('🎯 Form data before API call:', data);
+      console.log('🎯 Reserve price in form data:', data.reservePrice);
+      console.log('🎯 Reserve price parsed:', data.reservePrice ? parseFloat(data.reservePrice).toString() : undefined);
+      
       const response = await apiRequest("POST", "/api/auctions", {
         ...data,
         weight: parseFloat(data.weight).toString(),

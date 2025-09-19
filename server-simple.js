@@ -310,6 +310,8 @@ app.post('/api/auctions', (req, res) => {
   console.log('🎯 Creating new auction with data:', req.body);
   console.log('🎯 Reserve price received:', req.body.reservePrice);
   console.log('🎯 Starting bid received:', req.body.startingBid);
+  console.log('🎯 Reserve price type:', typeof req.body.reservePrice);
+  console.log('🎯 Reserve price value:', req.body.reservePrice);
   
   const newAuction = {
     id: 'AU' + String(Date.now()).slice(-4),
@@ -320,7 +322,12 @@ app.post('/api/auctions', (req, res) => {
   
   console.log('🎯 New auction created:', newAuction);
   console.log('🎯 Reserve price in created auction:', newAuction.reservePrice);
+  console.log('🎯 Reserve price type in created auction:', typeof newAuction.reservePrice);
+  
   fallbackStorage.auctions.push(newAuction);
+  console.log('🎯 Auction added to storage. Total auctions:', fallbackStorage.auctions.length);
+  console.log('🎯 Last auction in storage:', fallbackStorage.auctions[fallbackStorage.auctions.length - 1]);
+  
   res.status(201).json(newAuction);
 });
 
