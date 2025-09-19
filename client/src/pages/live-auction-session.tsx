@@ -32,7 +32,7 @@ declare global {
 const liveAuctionSessionSchema = z.object({
   title: z.string().min(1, "Auction title is required"),
   description: z.string().optional(),
-  facebookGroup: z.string().min(1, "Facebook group is required"), // Required for bid detection
+  facebookGroup: z.string().optional(), // Optional for testing
   postUrl: z.string().min(1, "Facebook Post URL is required"), // Required for bid detection
   startTime: z.string().min(1, "Start time is required"),
   duration: z.number().min(1, "Duration must be at least 1 minute").max(1440, "Duration cannot exceed 24 hours"),
@@ -569,9 +569,9 @@ export default function LiveAuctionSession() {
                   name="facebookGroup"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Facebook Group *</FormLabel>
+                      <FormLabel>Facebook Group (Optional)</FormLabel>
                       <FormDescription>
-                        Select the Facebook group where you'll post the live auction
+                        Select the Facebook group where you'll post the live auction (optional for testing)
                       </FormDescription>
                       <div className="flex gap-2">
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
