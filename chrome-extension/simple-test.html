@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Chrome Extension Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover { background-color: #0056b3; }
+        #results {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #dee2e6;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Simple Chrome Extension Test</h1>
+    
+    <div class="test-box">
+        <h2>Step 1: Check Extension Installation</h2>
+        <div id="install-status" class="status error">Checking...</div>
+        <button onclick="checkInstallation()">Check Installation</button>
+    </div>
+
+    <div class="test-box">
+        <h2>Step 2: Test Basic Communication</h2>
+        <div id="comm-status" class="status error">Not tested</div>
+        <button onclick="testCommunication()">Test Communication</button>
+    </div>
+
+    <div class="test-box">
+        <h2>Step 3: Test Group Detection</h2>
+        <div id="group-status" class="status error">Not tested</div>
+        <button onclick="testGroupDetection()">Test Group Detection</button>
+    </div>
+
+    <div class="test-box">
+        <h2>Debug Results</h2>
+        <button onclick="clearResults()">Clear</button>
+        <div id="results"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>Installation Instructions</h2>
+        <ol>
+            <li>Go to <code>chrome://extensions/</code></li>
+            <li>Enable "Developer mode" (top right toggle)</li>
+            <li>Click "Load unpacked"</li>
+            <li>Select folder: <code>C:\Users\Tory\Downloads\OpalTracker\OpalTracker\chrome-extension</code></li>
+            <li>Verify extension appears in list</li>
+            <li>Refresh this page and test again</li>
+        </ol>
+    </div>
+
+    <script>
+        function log(message) {
+            const timestamp = new Date().toLocaleTimeString();
+            const results = document.getElementById('results');
+            results.textContent += `[${timestamp}] ${message}\n`;
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function checkInstallation() {
+            log('🔍 Checking Chrome extension installation...');
+            
+            const statusDiv = document.getElementById('install-status');
+            
+            // Check if chrome object exists
+            if (typeof chrome === 'undefined') {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Chrome object not found';
+                log('❌ Chrome object is undefined');
+                return false;
+            }
+            
+            log('✅ Chrome object exists');
+            
+            // Check if chrome.runtime exists
+            if (typeof chrome.runtime === 'undefined') {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Chrome runtime not found';
+                log('❌ chrome.runtime is undefined');
+                return false;
+            }
+            
+            log('✅ chrome.runtime exists');
+            
+            // Check if extension is installed
+            try {
+                chrome.runtime.sendMessage({ action: 'ping' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ Extension not responding';
+                        log(`❌ Extension error: ${chrome.runtime.lastError.message}`);
+                    } else {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '✅ Extension is installed and working!';
+                        log('✅ Extension responded successfully');
+                    }
+                });
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Extension communication failed';
+                log(`❌ Communication error: ${error.message}`);
+            }
+        }
+
+        function testCommunication() {
+            log('📡 Testing basic communication...');
+            
+            const statusDiv = document.getElementById('comm-status');
+            
+            if (typeof chrome === 'undefined' || typeof chrome.runtime === 'undefined') {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Chrome extension not available';
+                log('❌ Chrome extension not available');
+                return;
+            }
+            
+            try {
+                chrome.runtime.sendMessage({ action: 'ping' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ Communication failed';
+                        log(`❌ Communication error: ${chrome.runtime.lastError.message}`);
+                    } else {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = '✅ Communication successful';
+                        log(`✅ Communication successful: ${JSON.stringify(response)}`);
+                    }
+                });
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Communication error';
+                log(`❌ Communication error: ${error.message}`);
+            }
+        }
+
+        function testGroupDetection() {
+            log('🎯 Testing group detection...');
+            
+            const statusDiv = document.getElementById('group-status');
+            
+            if (typeof chrome === 'undefined' || typeof chrome.runtime === 'undefined') {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Chrome extension not available';
+                log('❌ Chrome extension not available');
+                return;
+            }
+            
+            try {
+                chrome.runtime.sendMessage({ action: 'detectGroups' }, (response) => {
+                    if (chrome.runtime.lastError) {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ Group detection failed';
+                        log(`❌ Group detection error: ${chrome.runtime.lastError.message}`);
+                    } else if (response && response.success) {
+                        statusDiv.className = 'status success';
+                        statusDiv.textContent = `✅ Group detection successful (${response.count || 0} groups)`;
+                        log(`✅ Group detection successful: ${JSON.stringify(response)}`);
+                    } else {
+                        statusDiv.className = 'status error';
+                        statusDiv.textContent = '❌ No groups detected';
+                        log(`❌ No groups detected: ${JSON.stringify(response)}`);
+                    }
+                });
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ Group detection error';
+                log(`❌ Group detection error: ${error.message}`);
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('results').textContent = '';
+        }
+
+        // Auto-check on page load
+        window.addEventListener('load', () => {
+            setTimeout(checkInstallation, 1000);
+        });
+    </script>
+</body>
+</html>
