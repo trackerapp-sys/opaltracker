@@ -119,7 +119,7 @@ export default function Help() {
               <div className="flex items-start space-x-3">
                 <Badge className="bg-green-500/10 text-green-600 mt-1">3</Badge>
                 <div>
-                  <h3 className="font-semibold text-foreground">Organize Item Order</h3>
+                  <h3 className="font-semibold text-foreground">Organise Item Order</h3>
                   <p className="text-sm text-muted-foreground">
                     Arrange items in the order you want them to appear in your live auction. Use the up/down arrows to reorder items.
                   </p>
