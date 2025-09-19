@@ -235,6 +235,7 @@ export default function AddAuction() {
         weight: parseFloat(data.weight).toString(),
         weightGrams: data.weightGrams ? parseFloat(data.weightGrams).toString() : undefined,
         startingBid: parseFloat(data.startingBid).toString(),
+        reservePrice: data.reservePrice ? parseFloat(data.reservePrice).toString() : undefined,
         maxBid: data.maxBid ? parseFloat(data.maxBid).toString() : undefined,
         bidIncrements: data.bidIncrements ? parseFloat(data.bidIncrements).toString() : undefined,
         localShipping: data.localShipping ? parseFloat(data.localShipping).toString() : undefined,

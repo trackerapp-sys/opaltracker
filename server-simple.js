@@ -105,6 +105,28 @@ app.post('/api/bid-updates', (req, res) => {
   // Update the auction in fallback storage
   const auctionIndex = fallbackStorage.auctions.findIndex(a => a.id === auctionId);
   if (auctionIndex !== -1) {
+    const auction = fallbackStorage.auctions[auctionIndex];
+    const newBidAmount = parseFloat(currentBid);
+    const currentBidAmount = parseFloat(auction.currentBid || auction.startingBid || '0');
+    const bidIncrement = parseFloat(auction.bidIncrements || '1');
+    
+    // Check if bid meets minimum increment
+    const minimumBid = currentBidAmount + bidIncrement;
+    if (newBidAmount < minimumBid) {
+      console.log(`❌ Bid rejected: $${newBidAmount} by ${bidderName} - below minimum increment of $${bidIncrement}`);
+      return res.status(400).json({
+        error: 'Bid rejected - below minimum increment',
+        details: {
+          currentBid: currentBidAmount,
+          newBid: newBidAmount,
+          minimumRequired: minimumBid,
+          bidIncrement: bidIncrement,
+          bidder: bidderName
+        }
+      });
+    }
+    
+    // Update auction with new bid
     fallbackStorage.auctions[auctionIndex].currentBid = currentBid;
     fallbackStorage.auctions[auctionIndex].currentBidder = bidderName || 'Unknown';
     fallbackStorage.auctions[auctionIndex].updatedAt = new Date().toISOString();

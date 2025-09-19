@@ -789,6 +789,12 @@ function sendToTracker(amount, bidder) {
         });
         
         if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          if (response.status === 400 && errorData.error === 'Bid rejected - below minimum increment') {
+            console.log(`❌ BID REJECTED: $${highestBid} by ${bidderName} - below minimum increment of $${errorData.details?.bidIncrement || '1'}`);
+            console.log(`📊 Current bid: $${errorData.details?.currentBid || '0'}, Required minimum: $${errorData.details?.minimumRequired || '0'}`);
+            throw new Error(`Bid rejected: Below minimum increment of $${errorData.details?.bidIncrement || '1'}`);
+          }
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
         
