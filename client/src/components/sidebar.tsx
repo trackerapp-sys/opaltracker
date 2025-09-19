@@ -22,7 +22,7 @@ export default function Sidebar() {
       title: "Live Auctions",
       items: [
         { path: "/live-auction-dashboard", label: "View Live Auctions", icon: Eye },
-        { path: "/live-auction-session", label: "Add Live Auction", icon: Calendar },
+        { path: "/live-auction-session", label: "Add Live Auction", icon: Plus },
       ]
     },
     {
