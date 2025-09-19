@@ -106,11 +106,43 @@ export default function LiveAuctionSession() {
   });
 
   const handleFacebookLogin = async () => {
-    toast({
-      title: "Facebook Integration",
-      description: "Facebook integration is disabled in development. You can still create live auctions without Facebook posting.",
-      variant: "default",
-    });
+    // Check if Facebook integration is enabled for testing
+    const facebookEnabled = process.env.NODE_ENV === 'development' && 
+                           (localStorage.getItem('enableFacebookTesting') === 'true' || 
+                            window.location.search.includes('enableFacebook=true'));
+    
+    if (!facebookEnabled) {
+      toast({
+        title: "Facebook Integration",
+        description: "Facebook integration is disabled in development. You can still create live auctions without Facebook posting.",
+        variant: "default",
+      });
+      return;
+    }
+
+    // Facebook integration enabled for testing
+    try {
+      // This would normally open Facebook login dialog
+      // For testing, we'll simulate a successful login
+      const mockAccessToken = 'test_access_token_' + Date.now();
+      setFacebookAccessToken(mockAccessToken);
+      
+      toast({
+        title: "Facebook Integration",
+        description: "Facebook integration enabled for testing! Using mock access token.",
+        variant: "default",
+      });
+      
+      // Fetch mock Facebook groups for testing
+      await fetchFacebookGroups(mockAccessToken);
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to connect to Facebook",
+        variant: "destructive",
+      });
+    }
   };
 
   const fetchFacebookGroups = async (accessToken: string) => {
@@ -175,6 +207,37 @@ export default function LiveAuctionSession() {
         <p className="text-muted-foreground">
           Create a new live auction session with multiple items
         </p>
+        
+        {/* Facebook Testing Toggle - Only show in development */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm font-medium text-blue-900 dark:text-blue-100">Facebook Testing Mode</h3>
+                <p className="text-xs text-blue-700 dark:text-blue-300">
+                  Enable Facebook integration for testing purposes
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const enabled = localStorage.getItem('enableFacebookTesting') === 'true';
+                  localStorage.setItem('enableFacebookTesting', (!enabled).toString());
+                  toast({
+                    title: "Facebook Testing",
+                    description: enabled ? "Facebook testing disabled" : "Facebook testing enabled! Refresh the page to see changes.",
+                    variant: "default",
+                  });
+                }}
+                className="text-blue-700 border-blue-300 hover:bg-blue-100 dark:text-blue-300 dark:border-blue-600 dark:hover:bg-blue-800"
+              >
+                {localStorage.getItem('enableFacebookTesting') === 'true' ? 'Disable' : 'Enable'} Testing
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Form {...form}>

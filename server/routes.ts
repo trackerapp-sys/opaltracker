@@ -421,6 +421,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     facebookWebhooks.processWebhook(req, res);
   });
 
+  // Mock Facebook groups endpoint for testing
+  app.get('/api/facebook/groups', async (req, res) => {
+    try {
+      // Mock Facebook groups for testing
+      const mockGroups = [
+        { id: 'test_group_1', name: 'Australian Opal Trading Post', member_count: 15000 },
+        { id: 'test_group_2', name: 'Opal Buyers & Sellers', member_count: 8500 },
+        { id: 'test_group_3', name: 'Opal Enthusiasts', member_count: 12000 },
+        { id: 'test_group_4', name: 'Gemstone Trading', member_count: 22000 },
+        { id: 'test_group_5', name: 'Opal Collectors', member_count: 6500 }
+      ];
+      
+      res.json({ groups: mockGroups });
+    } catch (error) {
+      console.error("Error fetching Facebook groups:", error);
+      res.status(500).json({ message: "Failed to fetch Facebook groups" });
+    }
+  });
+
   // Facebook direct posting endpoint
   app.post('/api/facebook/post', async (req, res) => {
     try {
