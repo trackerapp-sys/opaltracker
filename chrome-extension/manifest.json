@@ -13,6 +13,7 @@
     "https://www.facebook.com/*",
     "https://facebook.com/*",
     "http://localhost:5000/*",
+    "https://opaltracker.onrender.com/*",
     "https://*.replit.app/*"
   ],
   "content_scripts": [
@@ -36,5 +37,11 @@
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["test-extension.html"],
+      "matches": ["<all_urls>"]
+    }
+  ]
 }
