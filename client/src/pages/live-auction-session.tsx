@@ -197,7 +197,7 @@ export default function LiveAuctionSession() {
                 });
               }
             }, {
-              scope: 'email,public_profile,user_groups' // Request groups permission
+              scope: 'email,public_profile' // Basic permissions only
             });
           }
         });
@@ -257,12 +257,27 @@ export default function LiveAuctionSession() {
             
           } else {
             console.error('❌ Facebook groups API error:', response.error);
-            toast({
-              title: "Failed to Load Groups",
-              description: response.error ? response.error.message : "Could not fetch Facebook groups",
-              variant: "destructive",
-              duration: 4000,
-            });
+            
+            // Handle specific Facebook API errors
+            if (response.error && response.error.code === 200) {
+              // Permission denied - Facebook has restricted group access
+              toast({
+                title: "Groups Access Restricted",
+                description: "Facebook has restricted access to user groups. Please enter your group name manually below.",
+                variant: "destructive",
+                duration: 5000,
+              });
+            } else {
+              toast({
+                title: "Failed to Load Groups",
+                description: response.error ? response.error.message : "Could not fetch Facebook groups. Please enter your group name manually below.",
+                variant: "destructive",
+                duration: 4000,
+              });
+            }
+            
+            // Set empty groups array to show manual input option
+            setFacebookGroups([]);
           }
           
           setIsLoadingGroups(false);
@@ -622,6 +637,24 @@ export default function LiveAuctionSession() {
                             : "⚠️ Facebook login requires HTTPS. Using mock data for development."
                         }
                       </div>
+                      
+                      {/* Manual input when groups API fails */}
+                      {facebookGroups.length === 0 && (
+                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                          <p className="text-sm text-yellow-800 mb-2">
+                            <strong>Manual Entry Required:</strong> Facebook has restricted access to user groups.
+                          </p>
+                          <Input
+                            placeholder="Enter your Facebook group name manually"
+                            value={form.watch('facebookGroup') || ''}
+                            onChange={(e) => form.setValue('facebookGroup', e.target.value)}
+                            className="text-sm"
+                          />
+                          <p className="text-xs text-yellow-700 mt-1">
+                            Enter the exact name of your Facebook group (e.g., "Opal Sales Australia")
+                          </p>
+                        </div>
+                      )}
                       
                       <FormMessage />
                     </FormItem>
