@@ -9,7 +9,7 @@ console.log('📄 PAGE TITLE:', document.title);
 let trackerUrl = 'https://opaltracker.onrender.com'; // Default to deployed
 
 // Check if we're in development mode (you can change this)
-const isDevelopment = false; // Set to true for local testing
+const isDevelopment = true; // Set to true for local testing
 
 if (isDevelopment) {
   trackerUrl = 'http://localhost:5000';
