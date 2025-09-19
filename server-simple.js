@@ -95,6 +95,7 @@ app.post('/api/monitor/check', (req, res) => {
 // Bid updates endpoint for Chrome extension
 app.post('/api/bid-updates', (req, res) => {
   console.log('🎯 Bid update received from Chrome extension:', req.body);
+  console.log('🎯 Current auctions in storage:', fallbackStorage.auctions.length);
   
   // Process the bid update
   const { auctionId, currentBid, bidderName, timestamp } = req.body;
@@ -228,12 +229,17 @@ try {
   });
 
   app.post('/api/auctions', (req, res) => {
+    console.log('🎯 Creating new auction with data:', req.body);
+    console.log('🎯 Reserve price received:', req.body.reservePrice);
+    
     const newAuction = {
       id: 'AU' + String(Date.now()).slice(-4),
       ...req.body,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+    
+    console.log('🎯 New auction created:', newAuction);
     fallbackStorage.auctions.push(newAuction);
     res.status(201).json(newAuction);
   });
