@@ -1,10 +1,8 @@
 import { Link, useLocation } from "wouter";
-import { Gem, ChartLine, List, Plus, Download, Activity, Upload, Settings, HelpCircle, Play, Eye, Calendar, TestTube, CreditCard, ChevronDown, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { Gem, ChartLine, List, Plus, Download, Activity, Upload, Settings, HelpCircle, Play, Eye, Calendar, TestTube, CreditCard } from "lucide-react";
 
 export default function Sidebar() {
   const [location] = useLocation();
-  const [settingsExpanded, setSettingsExpanded] = useState(false);
 
   const menuSections = [
     {
@@ -37,16 +35,9 @@ export default function Sidebar() {
     {
       title: "Settings & Support",
       items: [
-        { 
-          path: "/settings", 
-          label: "Settings", 
-          icon: Settings,
-          hasSubmenu: true,
-          submenuItems: [
-            { path: "/opal-type-settings", label: "Opal Type Settings", icon: Gem },
-            { path: "/payment-methods-settings", label: "Payment Methods", icon: CreditCard },
-          ]
-        },
+        { path: "/settings", label: "Settings", icon: Settings },
+        { path: "/opal-type-settings", label: "Opal Types", icon: Gem },
+        { path: "/payment-methods-settings", label: "Payment Methods", icon: CreditCard },
         { path: "/help", label: "Help & Support", icon: HelpCircle },
         ...(process.env.NODE_ENV === 'development' ? [{ path: "/dev-testing", label: "Dev Testing", icon: TestTube }] : []),
       ]
@@ -78,54 +69,6 @@ export default function Sidebar() {
                 {section.items.map((item) => {
                   const Icon = item.icon;
                   const isActive = location === item.path;
-                  
-                  if (item.hasSubmenu) {
-                    return (
-                      <li key={item.path}>
-                        <button
-                          onClick={() => setSettingsExpanded(!settingsExpanded)}
-                          className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 group ${
-                            isActive || settingsExpanded
-                              ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg transform scale-[1.02]"
-                              : "hover:bg-slate-800 text-slate-300 hover:text-white hover:shadow-md hover:transform hover:scale-[1.01]"
-                          }`}
-                        >
-                          <div className="flex items-center space-x-3">
-                            <Icon className={`w-5 h-5 transition-colors duration-200 flex-shrink-0 ${isActive || settingsExpanded ? 'text-white' : 'text-slate-300 group-hover:text-white'}`} style={{ minWidth: '20px', minHeight: '20px' }} />
-                            <span className="text-sm font-medium flex-1 text-left">{item.label}</span>
-                          </div>
-                          {settingsExpanded ? (
-                            <ChevronDown className="w-4 h-4" />
-                          ) : (
-                            <ChevronRight className="w-4 h-4" />
-                          )}
-                        </button>
-                        {settingsExpanded && item.submenuItems && (
-                          <div className="ml-4 mt-1 space-y-1">
-                            {item.submenuItems.map((subItem) => {
-                              const SubIcon = subItem.icon;
-                              const isSubActive = location === subItem.path;
-                              
-                              return (
-                                <Link key={subItem.path} href={subItem.path}>
-                                  <div
-                                    className={`flex items-center space-x-3 px-4 py-2 text-sm rounded-lg transition-all duration-200 group ${
-                                      isSubActive
-                                        ? "bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-lg transform scale-[1.02]"
-                                        : "hover:bg-slate-800 text-slate-400 hover:text-white hover:shadow-md hover:transform hover:scale-[1.01]"
-                                    }`}
-                                  >
-                                    <SubIcon className={`w-4 h-4 transition-colors duration-200 flex-shrink-0 ${isSubActive ? 'text-white' : 'text-slate-400 group-hover:text-white'}`} style={{ minWidth: '16px', minHeight: '16px' }} />
-                                    <span className="text-sm font-medium flex-1 text-left">{subItem.label}</span>
-                                  </div>
-                                </Link>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </li>
-                    );
-                  }
                   
                   return (
                     <li key={item.path}>
