@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Save, Play, Clock, Users, DollarSign, Gem } from "lucide-react";
+import { Plus, Save, Play, Clock, Users, DollarSign, Gem, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { formatCurrency } from "@/lib/utils";
@@ -20,7 +20,12 @@ import { formatCurrency } from "@/lib/utils";
 // Declare global FB for Facebook SDK
 declare global {
   interface Window {
-    FB: any;
+    FB: {
+      init: (config: any) => void;
+      login: (callback: (response: any) => void, options?: any) => void;
+      api: (path: string, method: string, params: any, callback: (response: any) => void) => void;
+      getLoginStatus: (callback: (response: any) => void) => void;
+    };
   }
 }
 
@@ -51,6 +56,7 @@ const getTodayDateTime = () => {
 };
 
 export default function LiveAuctionSession() {
+  const [facebookAccessToken, setFacebookAccessToken] = useState<string>('');
   const [isFacebookLoggedIn, setIsFacebookLoggedIn] = useState(false);
   const [facebookGroups, setFacebookGroups] = useState<any[]>([]);
   const [isLoadingGroups, setIsLoadingGroups] = useState(false);
@@ -67,18 +73,13 @@ export default function LiveAuctionSession() {
       facebookGroup: "",
       postUrl: "",
       startTime: getTodayDateTime(),
-    duration: 60, // Default to 1 hour
-    status: "scheduled",
-    images: [],
+      duration: 60, // Default to 1 hour
+      status: "scheduled",
+      images: [],
       videos: [],
       enableBidDetection: true, // Enable bid detection by default
     },
   });
-
-  // Fetch Facebook groups on component mount
-  useEffect(() => {
-    fetchFacebookGroupsFromServer();
-  }, []);
 
   // Helper function to calculate end time based on start time and duration
   const calculateEndTime = (startTime: string, durationMinutes: number) => {
@@ -98,6 +99,7 @@ export default function LiveAuctionSession() {
       toast({
         title: "Live Auction Session Created",
         description: "Your live auction session has been created successfully",
+        duration: 3000, // Auto-dismiss after 3 seconds
       });
       form.reset();
       setLocation("/live-auction-dashboard");
@@ -107,153 +109,224 @@ export default function LiveAuctionSession() {
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to create live auction session",
         variant: "destructive",
+        duration: 4000, // Auto-dismiss after 4 seconds
       });
     },
   });
 
   const handleFacebookLogin = async () => {
-    // Check if Facebook integration is enabled for testing
-    const facebookEnabled = process.env.NODE_ENV === 'development' && 
-                           (localStorage.getItem('enableFacebookTesting') === 'true' || 
-                            window.location.search.includes('enableFacebook=true'));
-    
-    if (!facebookEnabled) {
-      toast({
-        title: "Facebook Integration",
-        description: "Facebook integration is disabled in development. You can still create live auctions without Facebook posting.",
-        variant: "default",
-      });
-      return;
-    }
-
-    // Facebook integration enabled for testing
     try {
-      // This would normally open Facebook login dialog
-      // For testing, we'll simulate a successful login
-      const mockAccessToken = 'test_access_token_' + Date.now();
-      setFacebookAccessToken(mockAccessToken);
+      console.log('🎯 Starting REAL Facebook login...');
       
-      toast({
-        title: "Facebook Integration",
-        description: "Facebook integration enabled for testing! Using mock access token.",
-        variant: "default",
+      // Check if we're on HTTPS or localhost
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      const isSecure = protocol === 'https:' || hostname === 'localhost' || hostname === '127.0.0.1';
+      
+      console.log('🔍 Security check:', {
+        protocol: protocol,
+        hostname: hostname,
+        isSecure: isSecure
       });
       
-      // Fetch mock Facebook groups for testing
-      await fetchFacebookGroups(mockAccessToken);
+      // Force development mode for HTTP localhost
+      if (protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+        console.log('⚠️ HTTP localhost detected, using development mode');
+        toast({
+          title: "Development Mode",
+          description: "Facebook login requires HTTPS. Using mock data for development.",
+          variant: "default",
+          duration: 4000,
+        });
+        
+        // Set mock access token and groups for development
+        setFacebookAccessToken('dev_mode_' + Date.now());
+        setFacebookGroups([
+          { id: '1', name: 'Opal Sales Australia', privacy: 'closed' },
+          { id: '2', name: 'Australian Opal Traders', privacy: 'closed' },
+          { id: '3', name: 'Australian Opal Trading Post', privacy: 'closed' },
+          { id: '4', name: 'Opal Auctions', privacy: 'closed' },
+          { id: '5', name: "Russell's Unique Deals", privacy: 'closed' },
+          { id: '6', name: 'CanadianDollarBingo Friends', privacy: 'closed' },
+          { id: '7', name: 'App Testing Group', privacy: 'closed' }
+        ]);
+        return;
+      }
       
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to connect to Facebook",
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Function to detect Facebook groups using Chrome extension
-  const detectFacebookGroups = async () => {
-    console.log('🎯 Detect Groups button clicked!');
-    console.log('🎯 Chrome available:', typeof chrome !== 'undefined');
-    console.log('🎯 Chrome runtime available:', typeof chrome !== 'undefined' && chrome.runtime);
-    
-    setIsDetectingGroups(true);
-    try {
-      // Check if Chrome extension is available
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        console.log('🎯 Using Chrome extension to detect groups');
-        // Send message to Chrome extension to detect groups
-        chrome.runtime.sendMessage({ action: 'detectFacebookGroups' }, (response) => {
-          console.log('🎯 Chrome extension response:', response);
-          if (response && response.success) {
-            console.log('✅ Groups detected by extension:', response.groups);
-            setFacebookGroups(response.groups || []);
-            toast({
-              title: "Groups Detected",
-              description: `Found ${response.groups?.length || 0} Facebook groups`,
-              variant: "default",
-            });
+      // Check if Facebook SDK is available
+      if (typeof window !== 'undefined' && window.FB) {
+        console.log('✅ Facebook SDK available, starting login...');
+        
+        // First check if user is already logged in
+        window.FB.getLoginStatus((response: any) => {
+          console.log('🎯 Current login status:', response);
+          
+          if (response.status === 'connected') {
+            console.log('✅ Already logged in to Facebook!');
+            setFacebookAccessToken(response.authResponse.accessToken);
+            fetchFacebookGroups(response.authResponse.accessToken);
           } else {
-            console.log('❌ Extension did not detect groups');
-            toast({
-              title: "No Groups Detected",
-              description: "Please visit Facebook groups page and try again",
-              variant: "destructive",
+            console.log('🔄 Not logged in, starting login process...');
+            
+            // Login with Facebook
+            window.FB.login((loginResponse: any) => {
+              console.log('🎯 Facebook login response:', loginResponse);
+              
+              if (loginResponse.authResponse) {
+                console.log('✅ Facebook login successful!');
+                const accessToken = loginResponse.authResponse.accessToken;
+                setFacebookAccessToken(accessToken);
+                
+                toast({
+                  title: "Facebook Login Successful!",
+                  description: "Successfully logged in to Facebook! Fetching your groups...",
+                  variant: "default",
+                  duration: 3000,
+                });
+                
+                // Fetch Facebook groups after successful login
+                fetchFacebookGroups(accessToken);
+                
+              } else {
+                console.log('❌ Facebook login cancelled or failed');
+                toast({
+                  title: "Facebook Login Cancelled",
+                  description: "Please try again to login to Facebook",
+                  variant: "destructive",
+                  duration: 4000,
+                });
+              }
+            }, {
+              scope: 'email,public_profile,user_groups' // Request groups permission
             });
           }
-          setIsDetectingGroups(false);
         });
+        
       } else {
-        console.log('🎯 Chrome extension not available, using server fallback');
-        // Fallback: fetch from server
-        await fetchFacebookGroupsFromServer();
-        setIsDetectingGroups(false);
-      }
-    } catch (error) {
-      console.error('❌ Error detecting Facebook groups:', error);
-      toast({
-        title: "Error",
-        description: "Failed to detect Facebook groups",
-        variant: "destructive",
-      });
-      setIsDetectingGroups(false);
-    }
-  };
-
-  // Function to fetch Facebook groups from server
-  const fetchFacebookGroupsFromServer = async () => {
-    console.log('🎯 Fetching Facebook groups from server...');
-    setIsLoadingGroups(true);
-    try {
-      const response = await fetch('/api/facebook/groups');
-      console.log('🎯 Server response status:', response.status);
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Groups fetched from server:', data);
-        setFacebookGroups(data || []);
+        console.log('❌ Facebook SDK not available');
         toast({
-          title: "Groups Loaded",
-          description: `Loaded ${data?.length || 0} Facebook groups from server`,
-          variant: "default",
+          title: "Facebook SDK Not Available",
+          description: "Please refresh the page and try again",
+          variant: "destructive",
+          duration: 4000,
         });
-      } else {
-        throw new Error('Failed to fetch Facebook groups');
       }
-    } catch (error: unknown) {
-      console.error('❌ Error fetching Facebook groups:', error);
+      
+    } catch (error) {
+      console.error('Facebook login error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch Facebook groups",
+        title: "Facebook Login Failed",
+        description: "An error occurred during Facebook login",
         variant: "destructive",
+        duration: 4000,
       });
-    } finally {
-      setIsLoadingGroups(false);
     }
   };
 
+  // Function to fetch Facebook groups using REAL Facebook API
   const fetchFacebookGroups = async (accessToken: string) => {
     setIsLoadingGroups(true);
     try {
-      const response = await fetch('/api/facebook/groups', {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
-      });
+      console.log('🎯 Fetching REAL Facebook groups...');
       
-      if (response.ok) {
-        const data = await response.json();
-        setFacebookGroups(data.groups || []);
+      if (typeof window !== 'undefined' && window.FB) {
+        // Use Facebook API to get user's groups
+        window.FB.api('/me/groups', 'GET', {
+          access_token: accessToken,
+          fields: 'id,name,privacy'
+        }, (response: any) => {
+          console.log('🎯 Facebook groups API response:', response);
+          
+          if (response && !response.error && response.data) {
+            console.log('✅ Successfully fetched Facebook groups:', response.data);
+            
+            const groups = response.data.map((group: any) => ({
+              id: group.id,
+              name: group.name,
+              privacy: group.privacy
+            }));
+            
+            setFacebookGroups(groups);
+            
+            toast({
+              title: "Groups Loaded Successfully!",
+              description: `Found ${groups.length} Facebook groups`,
+              variant: "default",
+              duration: 3000,
+            });
+            
+          } else {
+            console.error('❌ Facebook groups API error:', response.error);
+            toast({
+              title: "Failed to Load Groups",
+              description: response.error ? response.error.message : "Could not fetch Facebook groups",
+              variant: "destructive",
+              duration: 4000,
+            });
+          }
+          
+          setIsLoadingGroups(false);
+        });
+        
       } else {
-        throw new Error('Failed to fetch Facebook groups');
+        throw new Error('Facebook SDK not available');
       }
-    } catch (error: unknown) {
+      
+    } catch (error) {
+      console.error('Error fetching Facebook groups:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to fetch Facebook groups",
+        description: "Failed to fetch Facebook groups",
         variant: "destructive",
+        duration: 4000,
       });
-    } finally {
       setIsLoadingGroups(false);
+    }
+  };
+
+  const handleDetectGroups = async () => {
+    console.log('🎯 Detect Groups button clicked!');
+    
+    // Check if we're on HTTPS or localhost
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    const isSecure = protocol === 'https:' || hostname === 'localhost' || hostname === '127.0.0.1';
+    
+    console.log('🔍 Detect Groups - Security check:', {
+      protocol: protocol,
+      hostname: hostname,
+      isSecure: isSecure
+    });
+    
+    // Force development mode for HTTP localhost
+    if (protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1')) {
+      console.log('⚠️ HTTP localhost detected, using development mode');
+      toast({
+        title: "Development Mode",
+        description: "Using mock Facebook groups for development. Deploy to HTTPS for real Facebook integration.",
+        variant: "default",
+        duration: 4000,
+      });
+      
+      // Set mock groups for development
+      setFacebookGroups([
+        { id: '1', name: 'Opal Sales Australia', privacy: 'closed' },
+        { id: '2', name: 'Australian Opal Traders', privacy: 'closed' },
+        { id: '3', name: 'Australian Opal Trading Post', privacy: 'closed' },
+        { id: '4', name: 'Opal Auctions', privacy: 'closed' },
+        { id: '5', name: "Russell's Unique Deals", privacy: 'closed' },
+        { id: '6', name: 'CanadianDollarBingo Friends', privacy: 'closed' },
+        { id: '7', name: 'App Testing Group', privacy: 'closed' }
+      ]);
+      return;
+    }
+    
+    if (facebookAccessToken) {
+      console.log('✅ User is logged in, fetching groups...');
+      await fetchFacebookGroups(facebookAccessToken);
+    } else {
+      console.log('❌ User not logged in, starting login process...');
+      await handleFacebookLogin();
     }
   };
 
@@ -284,6 +357,7 @@ export default function LiveAuctionSession() {
         title: "Error",
         description: error instanceof Error ? error.message : "Unknown error occurred",
         variant: "destructive",
+        duration: 4000, // Auto-dismiss after 4 seconds
       });
     }
   };
@@ -314,11 +388,12 @@ export default function LiveAuctionSession() {
                 onClick={() => {
                   const enabled = localStorage.getItem('enableFacebookTesting') === 'true';
                   localStorage.setItem('enableFacebookTesting', (!enabled).toString());
-                  toast({
-                    title: "Facebook Testing",
-                    description: enabled ? "Facebook testing disabled" : "Facebook testing enabled! Refresh the page to see changes.",
-                    variant: "default",
-                  });
+                    toast({
+                      title: "Facebook Testing",
+                      description: enabled ? "Facebook testing disabled" : "Facebook testing enabled! Refresh the page to see changes.",
+                      variant: "default",
+                      duration: 3000, // Auto-dismiss after 3 seconds
+                    });
                 }}
                 className="text-blue-700 border-blue-300 hover:bg-blue-100 dark:text-blue-300 dark:border-blue-600 dark:hover:bg-blue-800"
               >
@@ -455,113 +530,147 @@ export default function LiveAuctionSession() {
                 <div>
                   <h3 className="text-sm font-medium">Facebook Groups</h3>
                   <p className="text-xs text-muted-foreground">
-                    Detect your Facebook groups automatically
+                    Enable Facebook integration for live auction features
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    console.log('🎯 Detect Groups button clicked!');
-                    detectFacebookGroups();
-                  }}
-                  disabled={isDetectingGroups || isLoadingGroups}
-                >
-                  {isDetectingGroups ? (
-                    <>
-                      <Clock className="w-3 h-3 mr-1 animate-spin" />
-                      Detecting...
-                    </>
-                  ) : (
-                    <>
-                      <Users className="w-3 h-3 mr-1" />
-                      Detect Groups
-                    </>
-                  )}
-                </Button>
+                {!facebookAccessToken ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleFacebookLogin}
+                  >
+                    <Users className="w-3 h-3 mr-1" />
+                    Enable Facebook Integration
+                  </Button>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-green-600">
+                      ✓ Logged in
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setFacebookAccessToken('');
+                        setFacebookGroups([]);
+                        toast({
+                          title: "Logged out",
+                          description: "You have been logged out of Facebook",
+                          variant: "default",
+                          duration: 3000,
+                        });
+                      }}
+                    >
+                      Logout
+                    </Button>
+                  </div>
+                )}
               </div>
 
-              <FormField
-                control={form.control}
-                name="facebookGroup"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Facebook Group *</FormLabel>
-                    <FormDescription>
-                      Select the Facebook group where you'll post the live auction
-                    </FormDescription>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a Facebook group" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {isLoadingGroups ? (
-                          <SelectItem value="loading" disabled>
-                            Loading groups...
-                          </SelectItem>
-                        ) : facebookGroups.length > 0 ? (
-                          facebookGroups.map((group) => (
-                            <SelectItem key={group.id} value={group.name}>
-                              {group.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-groups" disabled>
-                            No groups available
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="postUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Facebook Post URL *</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="https://facebook.com/groups/your-group/posts/123456789"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      <strong>Required for bid detection:</strong> Copy the URL of your Facebook post where bidders will comment
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="enableBidDetection"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Enable automatic bid detection
-                      </FormLabel>
+              {facebookAccessToken && (
+                <FormField
+                  control={form.control}
+                  name="facebookGroup"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Facebook Group *</FormLabel>
                       <FormDescription>
-                        Automatically detect bids from Facebook comments using Chrome extension
+                        Select the Facebook group where you'll post the live auction
                       </FormDescription>
-                    </div>
-                  </FormItem>
-                )}
-              />
+                      <div className="flex gap-2">
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select a Facebook group" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {isLoadingGroups ? (
+                              <SelectItem value="loading" disabled>
+                                Loading groups...
+                              </SelectItem>
+                            ) : facebookGroups.length > 0 ? (
+                              facebookGroups.map((group) => (
+                                <SelectItem key={group.id} value={group.name}>
+                                  {group.name}
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="no-groups" disabled>
+                                No groups found - click refresh to load
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleDetectGroups}
+                          disabled={isLoadingGroups}
+                        >
+                          <RefreshCw className={`h-4 w-4 ${isLoadingGroups ? 'animate-spin' : ''}`} />
+                        </Button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {facebookGroups.length > 0 
+                          ? `✅ Found ${facebookGroups.length} Facebook groups`
+                          : window.location.protocol === 'https:' || window.location.hostname === 'localhost'
+                            ? "Click refresh to load your Facebook groups"
+                            : "⚠️ Facebook login requires HTTPS. Using mock data for development."
+                        }
+                      </div>
+                      
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
+
+                  <FormField
+                    control={form.control}
+                    name="postUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                    <FormLabel>Facebook Post URL *</FormLabel>
+                        <FormControl>
+                          <Input
+                        placeholder="https://facebook.com/groups/your-group/posts/123456789"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                      <strong>Required for bid detection:</strong> Copy the URL of your Facebook post where bidders will comment
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                name="enableBidDetection"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                        <FormControl>
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>
+                        Enable automatic bid detection
+                          </FormLabel>
+                          <FormDescription>
+                        Automatically detect bids from Facebook comments using Chrome extension
+                          </FormDescription>
+                        </div>
+                      </FormItem>
+                    )}
+                  />
             </CardContent>
           </Card>
 

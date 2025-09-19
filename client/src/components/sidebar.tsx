@@ -56,7 +56,7 @@ export default function Sidebar() {
   ];
 
   return (
-    <nav className="w-64 bg-slate-900 border-r border-slate-700 flex flex-col shadow-xl" data-testid="sidebar-navigation">
+    <nav className="w-80 bg-slate-900 border-r border-slate-700 flex flex-col shadow-xl" data-testid="sidebar-navigation">
       <div className="p-6 border-b border-slate-700 bg-gradient-to-r from-orange-500 to-orange-600">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-md">

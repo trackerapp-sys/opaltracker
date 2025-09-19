@@ -283,7 +283,7 @@ app.post('/api/settings/opal-types', (req, res) => {
 // Fallback: Facebook groups endpoints
 app.get('/api/facebook/groups', (req, res) => {
   console.log('📋 Fetching Facebook groups, count:', fallbackStorage.facebookGroups.length);
-  res.json(fallbackStorage.facebookGroups);
+  res.json({ groups: fallbackStorage.facebookGroups });
 });
 
 app.post('/api/facebook/groups', (req, res) => {

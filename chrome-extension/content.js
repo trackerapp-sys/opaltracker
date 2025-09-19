@@ -28,48 +28,140 @@ function detectFacebookGroups() {
   isDetectingGroups = true;
   
   console.log('🔍 Detecting Facebook groups...');
+  console.log('🔍 Current URL:', window.location.href);
+  console.log('🔍 Page title:', document.title);
   
   try {
-    // Look for group links in the left sidebar
-    const groupLinks = document.querySelectorAll('a[href*="/groups/"]');
     const groups = new Set();
     
-    groupLinks.forEach(link => {
+    // Method 1: Look for group links in the left sidebar (modern Facebook)
+    const sidebarSelectors = [
+      'a[href*="/groups/"]', // General group links
+      '[data-testid*="group"]', // Test ID selectors
+      '[aria-label*="group"]', // Aria label selectors
+      'a[role="link"][href*="/groups/"]', // Role-based selectors
+      'div[role="navigation"] a[href*="/groups/"]', // Navigation links
+      'nav a[href*="/groups/"]', // Nav links
+      'ul[role="list"] a[href*="/groups/"]', // List items
+      'div[data-pagelet="LeftRail"] a[href*="/groups/"]', // Left rail
+      'div[data-pagelet="Sidebar"] a[href*="/groups/"]', // Sidebar
+      'div[data-pagelet="LeftRail"] a[href*="/groups/"]', // Left rail specific
+      'div[data-pagelet="Sidebar"] a[href*="/groups/"]', // Sidebar specific
+      'div[role="complementary"] a[href*="/groups/"]', // Complementary role
+      'aside a[href*="/groups/"]', // Aside elements
+      'div[data-testid="LeftRail"] a[href*="/groups/"]', // LeftRail test ID
+      'div[data-testid="Sidebar"] a[href*="/groups/"]', // Sidebar test ID
+      'div[aria-label="Groups"] a[href*="/groups/"]', // Groups section
+      'div[aria-label="Groups you\'ve joined"] a[href*="/groups/"]', // Groups you've joined
+      'div[aria-label="All groups you\'ve joined"] a[href*="/groups/"]' // All groups you've joined
+    ];
+    
+    console.log('🔍 Trying different selectors...');
+    sidebarSelectors.forEach((selector, index) => {
+      const elements = document.querySelectorAll(selector);
+      console.log(`🔍 Selector ${index + 1} (${selector}): found ${elements.length} elements`);
+      
+      elements.forEach(element => {
+        const href = element.getAttribute('href');
+        const text = element.textContent?.trim();
+        
+        if (href && text && href.includes('/groups/') && !href.includes('/groups/feed') && !href.includes('/groups/discover')) {
+          const groupName = text || href.split('/groups/')[1]?.split('/')[0];
+          if (groupName && groupName !== 'feed' && groupName !== 'discover' && groupName.length > 1 && groupName.length < 100) {
+            groups.add({
+              name: groupName,
+              url: href.startsWith('http') ? href : `https://facebook.com${href}`,
+              id: href.split('/groups/')[1]?.split('/')[0]
+            });
+            console.log(`✅ Found group: ${groupName} (${href})`);
+          }
+        }
+      });
+    });
+    
+    // Method 2: Look for groups in the main content area
+    const contentSelectors = [
+      'div[data-pagelet="GroupsFeed"] a[href*="/groups/"]', // Groups feed
+      'div[role="main"] a[href*="/groups/"]', // Main content
+      'div[data-testid="GroupsFeed"] a[href*="/groups/"]', // Groups feed test ID
+      'div[aria-label*="group"] a[href*="/groups/"]' // Aria labeled groups
+    ];
+    
+    console.log('🔍 Checking main content area...');
+    contentSelectors.forEach((selector, index) => {
+      const elements = document.querySelectorAll(selector);
+      console.log(`🔍 Content selector ${index + 1} (${selector}): found ${elements.length} elements`);
+      
+      elements.forEach(element => {
+        const href = element.getAttribute('href');
+        const text = element.textContent?.trim();
+        
+        if (href && text && href.includes('/groups/') && !href.includes('/groups/feed')) {
+          const groupName = text || href.split('/groups/')[1]?.split('/')[0];
+          if (groupName && groupName !== 'feed' && groupName !== 'discover' && groupName.length > 1 && groupName.length < 100) {
+            groups.add({
+              name: groupName,
+              url: href.startsWith('http') ? href : `https://facebook.com${href}`,
+              id: href.split('/groups/')[1]?.split('/')[0]
+            });
+            console.log(`✅ Found group in content: ${groupName} (${href})`);
+          }
+        }
+      });
+    });
+    
+    // Method 3: Look for groups in the current page if we're on a specific group
+    const currentUrl = window.location.href;
+    if (currentUrl.includes('/groups/') && !currentUrl.includes('/groups/feed') && !currentUrl.includes('/groups/discover')) {
+      const groupId = currentUrl.split('/groups/')[1]?.split('/')[0];
+      if (groupId && groupId !== 'feed' && groupId !== 'discover') {
+        // Try to get group name from page title or other elements
+        const pageTitle = document.title;
+        const groupName = pageTitle.replace(' | Facebook', '').replace(' - Facebook', '').replace(' | Meta', '').replace(' - Meta', '');
+        
+        groups.add({
+          name: groupName || groupId,
+          url: currentUrl,
+          id: groupId
+        });
+        
+        console.log(`✅ Found current group: ${groupName || groupId} (${currentUrl})`);
+      }
+    }
+    
+    // Method 4: Look for groups in any remaining elements
+    console.log('🔍 Final sweep - looking for any remaining group links...');
+    const allGroupLinks = document.querySelectorAll('a[href*="/groups/"]');
+    console.log(`🔍 Found ${allGroupLinks.length} total group links on page`);
+    
+    allGroupLinks.forEach((link, index) => {
       const href = link.getAttribute('href');
       const text = link.textContent?.trim();
       
-      if (href && text && href.includes('/groups/') && !href.includes('/groups/feed')) {
-        // Extract group name from the link text or href
+      if (href && text && href.includes('/groups/') && !href.includes('/groups/feed') && !href.includes('/groups/discover')) {
         const groupName = text || href.split('/groups/')[1]?.split('/')[0];
-        if (groupName && groupName !== 'feed' && groupName !== 'discover') {
+        if (groupName && groupName !== 'feed' && groupName !== 'discover' && groupName.length > 1 && groupName.length < 100) {
           groups.add({
             name: groupName,
             url: href.startsWith('http') ? href : `https://facebook.com${href}`,
             id: href.split('/groups/')[1]?.split('/')[0]
           });
+          console.log(`✅ Final sweep found: ${groupName} (${href})`);
         }
       }
     });
     
-    // Also look for group names in the main content
-    const groupElements = document.querySelectorAll('[data-testid*="group"], [aria-label*="group"]');
-    groupElements.forEach(element => {
-      const text = element.textContent?.trim();
-      if (text && text.length > 0 && text.length < 100) {
-        groups.add({
-          name: text,
-          url: '',
-          id: text.toLowerCase().replace(/\s+/g, '-')
-        });
-      }
-    });
-    
     detectedGroups = Array.from(groups);
-    console.log('✅ Detected Facebook groups:', detectedGroups);
+    console.log('✅ Final detected groups:', detectedGroups);
+    console.log('✅ Total groups found:', detectedGroups.length);
     
     // Send groups to the tracker
     if (detectedGroups.length > 0) {
       sendGroupsToTracker(detectedGroups);
+    } else {
+      console.log('❌ No groups detected with any method');
+      // Send empty array to clear any previous groups
+      sendGroupsToTracker([]);
     }
     
   } catch (error) {
@@ -107,10 +199,30 @@ function sendGroupsToTracker(groups) {
 
 // Listen for messages from the tracker to detect groups
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  console.log('📨 Received message:', request);
+  
   if (request.action === 'detectFacebookGroups') {
     console.log('📨 Received request to detect Facebook groups');
+    
+    // Reset detected groups
+    detectedGroups = [];
+    
+    // Detect groups
     detectFacebookGroups();
-    sendResponse({ success: true, groups: detectedGroups });
+    
+    // Wait a moment for detection to complete, then send response
+    setTimeout(() => {
+      console.log('📤 Sending response with groups:', detectedGroups);
+      sendResponse({ 
+        success: true, 
+        groups: detectedGroups,
+        count: detectedGroups.length,
+        timestamp: new Date().toISOString()
+      });
+    }, 1000); // Wait 1 second for detection to complete
+    
+    // Return true to indicate we will send a response asynchronously
+    return true;
   }
 });
 
