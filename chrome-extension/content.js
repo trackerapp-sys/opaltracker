@@ -201,7 +201,7 @@ function sendGroupsToTracker(groups) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   console.log('📨 Received message:', request);
   
-  if (request.action === 'detectFacebookGroups') {
+  if (request.action === 'detectFacebookGroups' || request.action === 'detectGroups') {
     console.log('📨 Received request to detect Facebook groups');
     
     // Reset detected groups

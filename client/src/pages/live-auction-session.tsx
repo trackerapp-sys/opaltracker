@@ -302,46 +302,59 @@ export default function LiveAuctionSession() {
   const handleDetectGroups = async () => {
     console.log('🎯 Detect Groups button clicked!');
     
-    // Check if we're on HTTPS or localhost
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    const isSecure = protocol === 'https:' || hostname === 'localhost' || hostname === '127.0.0.1';
-    
-    console.log('🔍 Detect Groups - Security check:', {
-      protocol: protocol,
-      hostname: hostname,
-      isSecure: isSecure
-    });
-    
-    // Force development mode for HTTP localhost
-    if (protocol === 'http:' && (hostname === 'localhost' || hostname === '127.0.0.1')) {
-      console.log('⚠️ HTTP localhost detected, using development mode');
-      toast({
-        title: "Development Mode",
-        description: "Using mock Facebook groups for development. Deploy to HTTPS for real Facebook integration.",
-        variant: "default",
-        duration: 4000,
-      });
+    // Check if Chrome extension is available
+    if (typeof chrome !== 'undefined' && chrome.runtime) {
+      console.log('🎯 Chrome extension available, requesting group detection...');
       
-      // Set mock groups for development
-      setFacebookGroups([
-        { id: '1', name: 'Opal Sales Australia', privacy: 'closed' },
-        { id: '2', name: 'Australian Opal Traders', privacy: 'closed' },
-        { id: '3', name: 'Australian Opal Trading Post', privacy: 'closed' },
-        { id: '4', name: 'Opal Auctions', privacy: 'closed' },
-        { id: '5', name: "Russell's Unique Deals", privacy: 'closed' },
-        { id: '6', name: 'CanadianDollarBingo Friends', privacy: 'closed' },
-        { id: '7', name: 'App Testing Group', privacy: 'closed' }
-      ]);
-      return;
-    }
-    
-    if (facebookAccessToken) {
-      console.log('✅ User is logged in, fetching groups...');
-      await fetchFacebookGroups(facebookAccessToken);
+      try {
+        // Send message to Chrome extension to detect groups
+        chrome.runtime.sendMessage({ action: 'detectGroups' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('Chrome extension error:', chrome.runtime.lastError);
+            toast({
+              title: "Extension Error",
+              description: "Could not communicate with Chrome extension. Please install the Opal Tracker extension.",
+              variant: "destructive",
+              duration: 4000,
+            });
+          } else if (response && response.success && response.groups && response.groups.length > 0) {
+            console.log('✅ Groups detected by extension:', response.groups);
+            setFacebookGroups(response.groups);
+            
+            toast({
+              title: "Groups Detected Automatically!",
+              description: `Found ${response.groups.length} Facebook groups`,
+              variant: "default",
+              duration: 3000,
+            });
+          } else {
+            console.log('❌ No groups detected by extension');
+            toast({
+              title: "No Groups Detected",
+              description: "Make sure you're on Facebook and have the Opal Tracker extension installed. Try refreshing Facebook first.",
+              variant: "destructive",
+              duration: 5000,
+            });
+          }
+        });
+      } catch (error) {
+        console.error('Error communicating with Chrome extension:', error);
+        toast({
+          title: "Extension Error",
+          description: "Could not communicate with Chrome extension. Please install the Opal Tracker extension.",
+          variant: "destructive",
+          duration: 4000,
+        });
+      }
     } else {
-      console.log('❌ User not logged in, starting login process...');
-      await handleFacebookLogin();
+      console.log('🎯 Chrome extension not available');
+      
+      toast({
+        title: "Chrome Extension Required",
+        description: "Please install the Opal Tracker Chrome extension to automatically detect your Facebook groups.",
+        variant: "destructive",
+        duration: 5000,
+      });
     }
   };
 
@@ -631,30 +644,11 @@ export default function LiveAuctionSession() {
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {facebookGroups.length > 0 
-                          ? `✅ Found ${facebookGroups.length} Facebook groups`
-                          : window.location.protocol === 'https:' || window.location.hostname === 'localhost'
-                            ? "Click refresh to load your Facebook groups"
-                            : "⚠️ Facebook login requires HTTPS. Using mock data for development."
+                          ? `✅ Found ${facebookGroups.length} Facebook groups automatically`
+                          : "Click refresh to automatically detect your Facebook groups using the Chrome extension"
                         }
                       </div>
                       
-                      {/* Manual input when groups API fails */}
-                      {facebookGroups.length === 0 && (
-                        <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                          <p className="text-sm text-yellow-800 mb-2">
-                            <strong>Manual Entry Required:</strong> Facebook has restricted access to user groups.
-                          </p>
-                          <Input
-                            placeholder="Enter your Facebook group name manually"
-                            value={form.watch('facebookGroup') || ''}
-                            onChange={(e) => form.setValue('facebookGroup', e.target.value)}
-                            className="text-sm"
-                          />
-                          <p className="text-xs text-yellow-700 mt-1">
-                            Enter the exact name of your Facebook group (e.g., "Opal Sales Australia")
-                          </p>
-                        </div>
-                      )}
                       
                       <FormMessage />
                     </FormItem>
