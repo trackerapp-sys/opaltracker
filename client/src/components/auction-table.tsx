@@ -21,6 +21,7 @@ interface Auction {
   facebookGroup: string;
   postUrl?: string;
   startingBid: string;
+  reservePrice?: string;
   currentBid?: string;
   currentBidder?: string;
   startTime: string;
@@ -48,6 +49,41 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
   const [newBid, setNewBid] = useState("");
   const [newBidder, setNewBidder] = useState("");
   const [newStatus, setNewStatus] = useState("");
+
+  // Function to determine reserve price status
+  const getReservePriceStatus = (auction: Auction) => {
+    if (auction.status === "active") {
+      return "Active";
+    }
+    
+    if (!auction.reservePrice || parseFloat(auction.reservePrice) === 0) {
+      return "Sold";
+    }
+    
+    const currentBidAmount = parseFloat(auction.currentBid || "0");
+    const reserveAmount = parseFloat(auction.reservePrice);
+    
+    if (currentBidAmount >= reserveAmount) {
+      return "Sold";
+    } else {
+      return "Reserve Not Met";
+    }
+  };
+
+  // Function to get status color including reserve price logic
+  const getStatusColorWithReserve = (auction: Auction) => {
+    const status = getReservePriceStatus(auction);
+    switch (status) {
+      case "Active":
+        return "bg-green-500";
+      case "Sold":
+        return "bg-blue-500";
+      case "Reserve Not Met":
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
   const [editForm, setEditForm] = useState({
     opalType: "",
     weight: "",
@@ -397,12 +433,10 @@ export default function AuctionTable({ auctions, formatDate, getStatusColor, sho
                 </td>
                 <td className="px-2 py-2">
                   <Select value={auction.status} onValueChange={(status) => handleStatusUpdate(auction, status)}>
-                    <SelectTrigger className="w-24 h-6 text-xs">
+                    <SelectTrigger className="w-32 h-6 text-xs">
                       <SelectValue>
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white ${
-                          auction.status === "active" ? "bg-green-500" : "bg-red-500"
-                        }`}>
-                          {auction.status === "active" ? "Active" : "Ended"}
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white ${getStatusColorWithReserve(auction)}`}>
+                          {getReservePriceStatus(auction)}
                         </span>
                       </SelectValue>
                     </SelectTrigger>
