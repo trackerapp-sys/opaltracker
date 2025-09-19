@@ -16,6 +16,8 @@ import LiveAuctionItemManager from "@/pages/live-auction-item-manager";
 import LiveAuctionControl from "@/pages/live-auction-control";
 import BulkImport from "@/pages/bulk-import";
 import Settings from "@/pages/settings";
+import TimezoneSettings from "@/pages/timezone-settings";
+import BidMonitoringSettings from "@/pages/bid-monitoring-settings";
 import OpalTypeSettings from "@/pages/opal-type-settings";
 import PaymentMethodsSettings from "@/pages/payment-methods-settings";
 import Help from "@/pages/help";
@@ -41,6 +43,8 @@ function Router() {
         <Route path="/live-auction-control/:id" component={LiveAuctionControl} />
           <Route path="/bulk-import" component={BulkImport} />
           <Route path="/settings" component={Settings} />
+          <Route path="/timezone-settings" component={TimezoneSettings} />
+          <Route path="/bid-monitoring-settings" component={BidMonitoringSettings} />
           <Route path="/opal-type-settings" component={OpalTypeSettings} />
           <Route path="/payment-methods-settings" component={PaymentMethodsSettings} />
           <Route path="/help" component={Help} />

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Gem, ChartLine, List, Plus, Download, Activity, Upload, Settings, HelpCircle, Play, Eye, Calendar, TestTube, CreditCard, ChevronDown, ChevronRight, Monitor } from "lucide-react";
+import { Gem, ChartLine, List, Plus, Download, Activity, Upload, Settings, HelpCircle, Play, Eye, Calendar, TestTube, CreditCard, ChevronDown, ChevronRight, Clock } from "lucide-react";
 import { useState } from "react";
 
 export default function Sidebar() {
@@ -43,10 +43,10 @@ export default function Sidebar() {
           icon: Settings,
           hasSubmenu: true,
           submenuItems: [
-            { path: "/settings", label: "General Settings", icon: Settings },
+            { path: "/timezone-settings", label: "Timezone & Format", icon: Clock },
+            { path: "/bid-monitoring-settings", label: "Bid Monitoring", icon: Activity },
             { path: "/opal-type-settings", label: "Opal Types", icon: Gem },
             { path: "/payment-methods-settings", label: "Payment Methods", icon: CreditCard },
-            { path: "/monitor", label: "Monitor", icon: Monitor },
           ]
         },
         { path: "/help", label: "Help & Support", icon: HelpCircle },

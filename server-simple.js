@@ -162,6 +162,36 @@ try {
     res.status(201).json(newLiveAuction);
   });
   
+  // Fallback: Add monitor endpoints
+  app.get('/api/monitor/status', (req, res) => {
+    res.json({
+      running: false,
+      nextCheck: new Date(Date.now() + 60000).toISOString(),
+      message: "Monitor status - extension handles bid detection"
+    });
+  });
+
+  app.post('/api/monitor/start', (req, res) => {
+    res.json({
+      message: "Monitor started - extension handles bid detection",
+      status: { running: true, nextCheck: new Date(Date.now() + 60000).toISOString() }
+    });
+  });
+
+  app.post('/api/monitor/stop', (req, res) => {
+    res.json({
+      message: "Monitor stopped - extension handles bid detection",
+      status: { running: false, nextCheck: null }
+    });
+  });
+
+  app.post('/api/monitor/check', (req, res) => {
+    res.json({
+      message: "Manual check completed - extension handles bid detection",
+      updates: []
+    });
+  });
+  
   console.log('⚠️ Using fallback API endpoints');
 }
 
