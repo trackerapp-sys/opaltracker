@@ -10,6 +10,33 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Simple in-memory storage for fallback endpoints
+const fallbackStorage = {
+  settings: {
+    timezone: 'Australia/Sydney',
+    dateFormat: 'DD/MM/YYYY HH:MM',
+    currency: 'AUD',
+    notifications: true,
+    refreshRate: 5,
+    bidMonitoringEnabled: true,
+    bidCheckInterval: 3,
+    opalTypes: [
+      "Black Opal", "Crystal Opal", "Boulder Opal", "White Opal",
+      "Fire Opal", "Matrix Opal", "Rough Opal", "Doublet Opal",
+      "Triplet Opal", "Synthetic Opal", "Ethiopian Opal", "Mexican Opal",
+      "Peruvian Opal", "Other"
+    ]
+  },
+  paymentMethods: [
+    { id: 'pm_1', name: 'Bank Transfer', description: 'Direct bank transfer' },
+    { id: 'pm_2', name: 'PayPal', description: 'PayPal payment' },
+    { id: 'pm_3', name: 'Credit Card', description: 'Credit card payment' },
+    { id: 'pm_4', name: 'Cash on Delivery', description: 'Pay when item is delivered' }
+  ],
+  auctions: [],
+  liveAuctions: []
+};
+
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -42,35 +69,18 @@ try {
   
   // Fallback: Add basic settings endpoint
   app.get('/api/settings', (req, res) => {
-    res.json({
-      timezone: 'Australia/Sydney',
-      dateFormat: 'DD/MM/YYYY HH:MM',
-      currency: 'AUD',
-      notifications: true,
-      refreshRate: 5,
-      bidMonitoringEnabled: true,
-      bidCheckInterval: 3,
-      opalTypes: [
-        "Black Opal", "Crystal Opal", "Boulder Opal", "White Opal",
-        "Fire Opal", "Matrix Opal", "Rough Opal", "Doublet Opal",
-        "Triplet Opal", "Synthetic Opal", "Ethiopian Opal", "Mexican Opal",
-        "Peruvian Opal", "Other"
-      ]
-    });
+    res.json(fallbackStorage.settings);
   });
   
   app.post('/api/settings', (req, res) => {
-    res.json(req.body);
+    // Update settings with new data
+    fallbackStorage.settings = { ...fallbackStorage.settings, ...req.body };
+    res.json(fallbackStorage.settings);
   });
 
   // Fallback: Add payment methods endpoints
   app.get('/api/settings/payment-methods', (req, res) => {
-    res.json([
-      { id: 'pm_1', name: 'Bank Transfer', description: 'Direct bank transfer' },
-      { id: 'pm_2', name: 'PayPal', description: 'PayPal payment' },
-      { id: 'pm_3', name: 'Credit Card', description: 'Credit card payment' },
-      { id: 'pm_4', name: 'Cash on Delivery', description: 'Pay when item is delivered' }
-    ]);
+    res.json(fallbackStorage.paymentMethods);
   });
 
   app.post('/api/settings/payment-methods', (req, res) => {
@@ -79,41 +89,51 @@ try {
       name: req.body.name || 'New Payment Method',
       description: req.body.description || ''
     };
+    fallbackStorage.paymentMethods.push(newPaymentMethod);
     res.status(201).json(newPaymentMethod);
   });
 
   app.put('/api/settings/payment-methods/:id', (req, res) => {
-    const updatedPaymentMethod = {
-      id: req.params.id,
-      name: req.body.name || 'Updated Payment Method',
-      description: req.body.description || ''
-    };
-    res.json(updatedPaymentMethod);
+    const index = fallbackStorage.paymentMethods.findIndex(pm => pm.id === req.params.id);
+    if (index !== -1) {
+      fallbackStorage.paymentMethods[index] = {
+        id: req.params.id,
+        name: req.body.name || 'Updated Payment Method',
+        description: req.body.description || ''
+      };
+      res.json(fallbackStorage.paymentMethods[index]);
+    } else {
+      res.status(404).json({ message: 'Payment method not found' });
+    }
   });
 
   app.delete('/api/settings/payment-methods/:id', (req, res) => {
-    res.status(204).send();
+    const index = fallbackStorage.paymentMethods.findIndex(pm => pm.id === req.params.id);
+    if (index !== -1) {
+      fallbackStorage.paymentMethods.splice(index, 1);
+      res.status(204).send();
+    } else {
+      res.status(404).json({ message: 'Payment method not found' });
+    }
   });
 
   // Fallback: Add opal types endpoints
   app.get('/api/settings/opal-types', (req, res) => {
     res.json({
-      opalTypes: [
-        "Black Opal", "Crystal Opal", "Boulder Opal", "White Opal",
-        "Fire Opal", "Matrix Opal", "Rough Opal", "Doublet Opal",
-        "Triplet Opal", "Synthetic Opal", "Ethiopian Opal", "Mexican Opal",
-        "Peruvian Opal", "Other"
-      ]
+      opalTypes: fallbackStorage.settings.opalTypes
     });
   });
 
   app.post('/api/settings/opal-types', (req, res) => {
-    res.json({ opalTypes: req.body.opalTypes || [] });
+    if (req.body.opalTypes && Array.isArray(req.body.opalTypes)) {
+      fallbackStorage.settings.opalTypes = req.body.opalTypes;
+    }
+    res.json({ opalTypes: fallbackStorage.settings.opalTypes });
   });
 
   // Fallback: Add basic auction endpoints
   app.get('/api/auctions', (req, res) => {
-    res.json({ auctions: [], total: 0 });
+    res.json({ auctions: fallbackStorage.auctions, total: fallbackStorage.auctions.length });
   });
 
   app.post('/api/auctions', (req, res) => {
@@ -123,11 +143,12 @@ try {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+    fallbackStorage.auctions.push(newAuction);
     res.status(201).json(newAuction);
   });
 
   app.get('/api/live-auctions', (req, res) => {
-    res.json({ liveAuctions: [] });
+    res.json({ liveAuctions: fallbackStorage.liveAuctions });
   });
 
   app.post('/api/live-auctions', (req, res) => {
@@ -137,6 +158,7 @@ try {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
+    fallbackStorage.liveAuctions.push(newLiveAuction);
     res.status(201).json(newLiveAuction);
   });
   
